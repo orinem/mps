@@ -41,6 +41,7 @@ module.exports.CreateHttpInterceptor = function (args) {
     
     // Process data coming from AMT in the accumulator
     obj.processAmtDataEx = function () {
+        console.log('obj.amt.mode :', obj.amt.mode)
         if (obj.amt.mode == 0) { // Header Mode
             // Decode the HTTP header
             var headerend = obj.amt.acc.indexOf('\r\n\r\n');
@@ -255,6 +256,8 @@ module.exports.CreateRedirInterceptor = function (args) {
     // Create a random hex string of a given length
     obj.randomValueHex = function (len) { return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len); }
 
+    // console.log('obj.randomValueHex', obj.randomValueHex)
+    // console.log('args', args)
     obj.args = args;
     obj.amt = { acc: "", mode: 0, count: 0, error: false, direct: false};
     obj.ws = { acc: "", mode: 0, count: 0, error: false, direct: false, authCNonce: obj.randomValueHex(10), authCNonceCount: 1  };
@@ -269,22 +272,24 @@ module.exports.CreateRedirInterceptor = function (args) {
     
     // Process data coming from Intel AMT
     obj.processAmtData = function (data) {
-        obj.amt.acc += data; // Add data to accumulator
-        data = "";
+        if ((obj.amt.direct == true) && (obj.amt.acc == '')) { return data; } // Interceptor fast path
+        obj.amt.acc += data.toString('binary'); // Add data to accumulator
+        data = '';
         var datalen = 0;
         do { datalen = data.length; data += obj.processAmtDataEx(); } while (datalen != data.length); // Process as much data as possible
-        return data;
+        return Buffer.from(data, 'binary');
     }
     
     // Process data coming from AMT in the accumulator
     obj.processAmtDataEx = function () {
+        var r;
         if (obj.amt.acc.length == 0) return "";
         if (obj.amt.direct == true) {
             var data = obj.amt.acc;
             obj.amt.acc = "";
             return data;
         } else {
-            //console.log(obj.amt.acc.charCodeAt(0));
+            // console.log(obj.amt.acc.charCodeAt(0));
             switch (obj.amt.acc.charCodeAt(0)) {
                 case obj.RedirectCommands.StartRedirectionSessionReply: {
                     if (obj.amt.acc.length < 4) return "";
@@ -320,7 +325,7 @@ module.exports.CreateRedirInterceptor = function (args) {
                         obj.amt.direct = true;
                     }
 
-                    var r = obj.amt.acc.substring(0, 9 + l);
+                    r = obj.amt.acc.substring(0, 9 + l);
                     obj.amt.acc = obj.amt.acc.substring(9 + l);
                     return r;
                 }
@@ -335,38 +340,40 @@ module.exports.CreateRedirInterceptor = function (args) {
     
     // Process data coming from the Browser
     obj.processBrowserData = function (data) {
-        obj.ws.acc += data; // Add data to accumulator
-        data = "";
+        if ((obj.ws.direct == true) && (obj.ws.acc == '')) { return data; } // Interceptor fast path
+        obj.ws.acc += data.toString('binary'); // Add data to accumulator
+        data = '';
         var datalen = 0;
         do { datalen = data.length; data += obj.processBrowserDataEx(); } while (datalen != data.length); // Process as much data as possible
-        return data;
+        return Buffer.from(data, 'binary');
     }
     
     // Process data coming from the Browser in the accumulator
     obj.processBrowserDataEx = function () {
-        if (obj.ws.acc.length == 0) return "";
+        var r;
+        if (obj.ws.acc.length == 0) return '';
         if (obj.ws.direct == true) {
             var data = obj.ws.acc;
-            obj.ws.acc = "";
+            obj.ws.acc = '';
             return data;
         } else {
             switch (obj.ws.acc.charCodeAt(0)) {
                 case obj.RedirectCommands.StartRedirectionSession: {
-                    if (obj.ws.acc.length < 8) return "";
-                    var r = obj.ws.acc.substring(0, 8);
+                    if (obj.ws.acc.length < 8) return '';
+                    r = obj.ws.acc.substring(0, 8);
                     obj.ws.acc = obj.ws.acc.substring(8);
                     return r;
                 }
                 case obj.RedirectCommands.EndRedirectionSession: {
-                    if (obj.ws.acc.length < 4) return "";
-                    var r = obj.ws.acc.substring(0, 4);
+                    if (obj.ws.acc.length < 4) return '';
+                    r = obj.ws.acc.substring(0, 4);
                     obj.ws.acc = obj.ws.acc.substring(4);
                     return r;
                 }
                 case obj.RedirectCommands.AuthenticateSession: {
-                    if (obj.ws.acc.length < 9) return "";
+                    if (obj.ws.acc.length < 9) return '';
                     var l = common.ReadIntX(obj.ws.acc, 5);
-                    if (obj.ws.acc.length < 9 + l) return "";
+                    if (obj.ws.acc.length < 9 + l) return '';
                     
                     var authType = obj.ws.acc.charCodeAt(4);
                     if (authType == obj.AuthenticationType.DIGEST && obj.args.user && obj.args.pass) {
@@ -380,7 +387,7 @@ module.exports.CreateRedirInterceptor = function (args) {
                             
                             // Replace this authentication digest with a server created one
                             // We have everything we need to authenticate
-                            var r = String.fromCharCode(0x13, 0x00, 0x00, 0x00, 0x04);
+                            r = String.fromCharCode(0x13, 0x00, 0x00, 0x00, 0x04);
                             r += common.IntToStrX(obj.args.user.length + obj.amt.digestRealm.length + obj.amt.digestNonce.length + authurl.length + obj.ws.authCNonce.length + nc.toString().length + digest.length + obj.amt.digestQOP.length + 8);
                             r += String.fromCharCode(obj.args.user.length);         // Username Length
                             r += obj.args.user;                                     // Username
@@ -404,7 +411,7 @@ module.exports.CreateRedirInterceptor = function (args) {
                         } else {
                             // Replace this authentication digest with a server created one
                             // Since we don't have authentication parameters, fill them in with blanks to get an error back what that info.
-                            var r = String.fromCharCode(0x13, 0x00, 0x00, 0x00, 0x04);
+                            r = String.fromCharCode(0x13, 0x00, 0x00, 0x00, 0x04);
                             r += common.IntToStrX(obj.args.user.length + authurl.length + 8);
                             r += String.fromCharCode(obj.args.user.length);
                             r += obj.args.user;
@@ -416,17 +423,16 @@ module.exports.CreateRedirInterceptor = function (args) {
                         }
                     }
 
-                    var r = obj.ws.acc.substring(0, 9 + l);
+                    r = obj.ws.acc.substring(0, 9 + l);
                     obj.ws.acc = obj.ws.acc.substring(9 + l);
                     return r;
                 }
                 default: {
                     obj.ws.error = true;
-                    return "";
                 }
             }
         }
-        return "";
+        return '';
     }
     
     // Compute the MD5 digest hash for a set of values

@@ -112,7 +112,7 @@ export class MPSServer {
       if (socket.tag.first === true) {
         if (socket.tag.accumulator.length < 3) return
         // if (!socket.tag.clientCert.subject) { console.log("MPS Connection, no client cert: " + socket.remoteAddress); socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nMeshCentral2 MPS server.\r\nNo client certificate given.'); socket.end(); return; }
-        if (socket.tag.accumulator.substring(0, 3) === 'GET') {
+        if ((socket.tag.accumulator.substring(0, 4) === 'GET ') || (socket.tag.accumulator.substring(0, 5) === 'HEAD ')) {
           log.debug(`MPS Connection, HTTP GET detected: ${socket.remoteAddress}`)
           socket.write('HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>Intel Management Presence Server (MPS).<br />Intel&reg; AMT computers must connect here using CIRA.</body></html>')
           socket.end()
@@ -408,13 +408,13 @@ export class MPSServer {
         if (cirachannel == null) {
           log.debug(`MPS Error in CHANNEL_CLOSE: Unable to find channelid ${RecipientChannel}`); return 5
         }
-        this.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
         socket.tag.activetunnels--
         if (cirachannel.state > 0) {
           cirachannel.state = 0
           if (cirachannel.onStateChange) {
             cirachannel.onStateChange(cirachannel, cirachannel.state)
           }
+          this.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
           delete socket.tag.channels[RecipientChannel]
         }
         return 5
@@ -441,8 +441,8 @@ export class MPSServer {
             }
           } else {
             // Send a part of the pending buffer
-            this.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, cirachannel.sendcredits))
-            cirachannel.sendBuffer = cirachannel.sendBuffer.substring(cirachannel.sendcredits)
+            this.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.slice(0, cirachannel.sendcredits))
+            cirachannel.sendBuffer = cirachannel.sendBuffer.slice(cirachannel.sendcredits)
             cirachannel.sendcredits = 0
           }
         }
@@ -459,7 +459,7 @@ export class MPSServer {
           log.debug(`MPS Error in CHANNEL_DATA: Unable to find channelid ${RecipientChannel}`); return 9 + LengthOfData
         }
         cirachannel.amtpendingcredits += LengthOfData
-        if (cirachannel.onData) cirachannel.onData(cirachannel, data.substring(9, 9 + LengthOfData))
+        if (cirachannel.onData) cirachannel.onData(cirachannel, Buffer.from(data.substring(9, 9 + LengthOfData), 'binary'))
         if (cirachannel.amtpendingcredits > (cirachannel.ciraWindow / 2)) {
           this.SendChannelWindowAdjust(cirachannel.socket, cirachannel.amtchannelid, cirachannel.amtpendingcredits) // Adjust the buffer window
           cirachannel.amtpendingcredits = 0

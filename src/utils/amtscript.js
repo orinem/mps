@@ -6,29 +6,38 @@
 * @version v0.1.0e
 */
 
+/*jslint node: true */
+/*jshint node: true */
+/*jshint strict:false */
+/*jshint -W097 */
+/*jshint esversion: 6 */
+"use strict";
+
 module.exports.CreateAmtScriptEngine = function () {
     var o = {};
 
     // Core functions
-    script_functionTable1 = ['nop', 'jump', 'set', 'print', 'dialog', 'getitem', 'substr', 'indexof', 'split', 'join', 'length', 'jsonparse', 'jsonstr', 'add', 'substract', 'parseint', 'wsbatchenum', 'wsput', 'wscreate', 'wsdelete', 'wsexec', 'scriptspeed', 'wssubscribe', 'wsunsubscribe', 'readchar', 'signwithdummyca'];
+    const script_functionTable1 = ['nop', 'jump', 'set', 'print', 'dialog', 'getitem', 'substr', 'indexof', 'split', 'join', 'length', 'jsonparse', 'jsonstr', 'add', 'substract', 'parseint', 'wsbatchenum', 'wsput', 'wscreate', 'wsdelete', 'wsexec', 'scriptspeed', 'wssubscribe', 'wsunsubscribe', 'readchar', 'signwithdummyca'];
 
     // functions of type ARG1 = func(ARG2, ARG3, ARG4, ARG5, ARG6)
-    script_functionTable2 = ['encodeuri', 'decodeuri', 'passwordcheck', 'atob', 'btoa', 'hex2str', 'str2hex', 'random', 'md5', 'maketoarray', 'readshort', 'readshortx', 'readint', 'readsint', 'readintx', 'shorttostr', 'shorttostrx', 'inttostr', 'inttostrx'];
+    const script_functionTable2 = ['encodeuri', 'decodeuri', 'passwordcheck', 'atob', 'btoa', 'hex2str', 'str2hex', 'random', 'md5', 'maketoarray', 'readshort', 'readshortx', 'readint', 'readsint', 'readintx', 'shorttostr', 'shorttostrx', 'inttostr', 'inttostrx'];
 
     // functions of type ARG1 = func(ARG2, ARG3, ARG4, ARG5, ARG6)
     //script_functionTableX2 = [encodeURI, decodeURI, passwordcheck, window.atob.bind(window), window.btoa.bind(window), hex2rstr, rstr2hex, random, rstr_md5, MakeToArray, ReadShort, ReadShortX, ReadInt, ReadSInt, ReadIntX, ShortToStr, ShortToStrX, IntToStr, IntToStrX];
 
     // Optional functions of type ARG1 = func(ARG2, ARG3, ARG4, ARG5, ARG6)
-    script_functionTable3 = ['pullsystemstatus', 'pulleventlog', 'pullauditlog', 'pullcertificates', 'pullwatchdog', 'pullsystemdefense', 'pullhardware', 'pulluserinfo', 'pullremoteaccess', 'highlightblock', 'disconnect', 'getsidstring', 'getsidbytearray'];
+    const script_functionTable3 = ['pullsystemstatus', 'pulleventlog', 'pullauditlog', 'pullcertificates', 'pullwatchdog', 'pullsystemdefense', 'pullhardware', 'pulluserinfo', 'pullremoteaccess', 'highlightblock', 'disconnect', 'getsidstring', 'getsidbytearray'];
 
-    ReadShort = function (v, p) { return (v.charCodeAt(p) << 8) + v.charCodeAt(p + 1); }
-    ReadShortX = function (v, p) { return (v.charCodeAt(p + 1) << 8) + v.charCodeAt(p); }
-    ReadInt = function (v, p) { return (v.charCodeAt(p) * 0x1000000) + (v.charCodeAt(p + 1) << 16) + (v.charCodeAt(p + 2) << 8) + v.charCodeAt(p + 3); } // We use "*0x1000000" instead of "<<24" because the shift converts the number to signed int32.
-    ReadIntX = function (v, p) { return (v.charCodeAt(p + 3) * 0x1000000) + (v.charCodeAt(p + 2) << 16) + (v.charCodeAt(p + 1) << 8) + v.charCodeAt(p); }
-    ShortToStr = function (v) { return String.fromCharCode((v >> 8) & 0xFF, v & 0xFF); }
-    ShortToStrX = function (v) { return String.fromCharCode(v & 0xFF, (v >> 8) & 0xFF); }
-    IntToStr = function (v) { return String.fromCharCode((v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF); }
-    IntToStrX = function (v) { return String.fromCharCode(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF); }
+   
+
+    var ReadShort = function (v, p) { return (v.charCodeAt(p) << 8) + v.charCodeAt(p + 1); };
+    var ReadShortX = function (v, p) { return (v.charCodeAt(p + 1) << 8) + v.charCodeAt(p); };
+    var ReadInt = function (v, p) { return (v.charCodeAt(p) * 0x1000000) + (v.charCodeAt(p + 1) << 16) + (v.charCodeAt(p + 2) << 8) + v.charCodeAt(p + 3); }; // We use "*0x1000000" instead of "<<24" because the shift converts the number to signed int32.
+    var ReadIntX = function (v, p) { return (v.charCodeAt(p + 3) * 0x1000000) + (v.charCodeAt(p + 2) << 16) + (v.charCodeAt(p + 1) << 8) + v.charCodeAt(p); };
+    var ShortToStr = function (v) { return String.fromCharCode((v >> 8) & 0xFF, v & 0xFF); };
+    var ShortToStrX = function (v) { return String.fromCharCode(v & 0xFF, (v >> 8) & 0xFF); };
+    var IntToStr = function (v) { return String.fromCharCode((v >> 24) & 0xFF, (v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF); };
+    var IntToStrX = function (v) { return String.fromCharCode(v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF); };
 
     // Argument types: 0 = Variable, 1 = String, 2 = Integer, 3 = Label
     o.script_compile = function(script, onmsg) {
@@ -76,11 +85,11 @@ module.exports.CreateAmtScriptEngine = function () {
             r = r.substr(0, position) + IntToStr(target) + r.substr(position + 4);
         }
         return IntToStr(0x247D2945) + ShortToStr(1) + r;
-    }
+    };
 
     // Decompile the script, intended for debugging only
-    o.script_decompile = function(binary, onecmd) {
-        var r = '', ptr = 6, labelcount = 0, labels = {};
+    o.script_decompile = function (binary, onecmd) {
+        var r = '', ptr = 6, labels = {};
         if (onecmd >= 0) {
             ptr = onecmd; // If we are decompiling just one command, set the ptr to that command.
         } else {
@@ -97,7 +106,7 @@ module.exports.CreateAmtScriptEngine = function () {
             var argcount = ReadShort(binary, ptr + 4);
             var argptr = ptr + 6;
             var argstr = '';
-            if (!(onecmd >= 0)) r += ":label" + (ptr - 6) + "\n";
+            if (!(onecmd >= 0)) { r += ":label" + (ptr - 6) + "\n"; }
             // Loop on each argument, moving forward by the argument length each time
             for (var i = 0; i < argcount; i++) {
                 var arglen = ReadShort(binary, argptr);
@@ -135,7 +144,7 @@ module.exports.CreateAmtScriptEngine = function () {
             if (line[0] != ':') { r += line + '\n'; } else { if (labels[line]) { r += line + '\n'; } }
         }
         return r;
-    }
+    };
 
     // Convert the list of blocks into a script that can be compiled
     o.script_blocksToScript = function (script_BuildingBlocks, script_BlockScript) {
@@ -151,7 +160,7 @@ module.exports.CreateAmtScriptEngine = function () {
             if (script_BuildingBlocks['_end']) { script += '##### Ending Block #####\r\n' + script_BuildingBlocks['_end']['code'] + '\r\nHighlightBlock\r\n'; }
         }
         return script;
-    }
+    };
 
     return o;
-}
+};

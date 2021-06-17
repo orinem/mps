@@ -110,16 +110,19 @@ export class WebServer {
           // When data is received from the web socket, forward the data into the associated TCP connection.
           // If the TCP connection is pending, buffer up the data until it connects.
           ws.on('message', msg => {
-            // Convert a buffer into a string, "msg = msg.toString('ascii');" does not work
-            // var msg2 = "";
-            // for (var i = 0; i < msg.length; i++) { msg2 += String.fromCharCode(msg[i]); }
-            // msg = msg2;
-            msg = msg.toString('binary')
-
+            if (typeof msg === 'string') {
+              msg = Buffer.from(msg, 'binary')
+            }
+            // WS ---> AMT/TLS
             if (ws.interceptor) {
               msg = ws.interceptor.processBrowserData(msg)
-            } // Run data thru interceptor
-            ws.forwardclient.write(msg) // Forward data to the associated TCP connection.
+            }
+            // Forward binary data to the associated TCP connection.
+            try {
+              ws.forwardclient.write(msg)
+            } catch (ex) {
+              log.error('Failed while forwarding message to client')
+            }
           })
 
           // If the web socket is closed, close the associated TCP connection.
@@ -180,6 +183,7 @@ export class WebServer {
               ws.forwardclient.onData = (ciraconn, data): void => {
                 // Run data thru interceptor
                 if (ws.interceptor) {
+                  log.info('data', data)
                   data = ws.interceptor.processAmtData(data)
                 }
                 try {
@@ -190,10 +194,10 @@ export class WebServer {
               }
 
               ws.forwardclient.onStateChange = (ciraconn, state): void => {
-                // console.log('Relay CIRA state change:'+state);
+                log.info('Relay CIRA state change:', state)
                 if (state === 0) {
                   try {
-                    // console.log("Closing websocket.");
+                    log.info('Closing websocket.')
                     ws.close()
                   } catch (e) {
                     log.error(`Exception while closing client websocket connection: ${e}`)
