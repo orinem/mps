@@ -59,7 +59,7 @@ export class WsRedirect {
       const device = devices[params.host]
       if (device != null) {
         this.ciraHandler = new CIRAHandler(device.httpHandler, device.username, device.password)
-        this.setNormalTCP(params)
+        await this.setNormalTCP(params)
       }
     }
   }
@@ -95,11 +95,11 @@ export class WsRedirect {
     }
   }
 
-  setNormalTCP (params: queryParams): void {
+  async setNormalTCP (params: queryParams): Promise<void> {
     // If this is TCP (without TLS) set a normal TCP socket
     // check if this is MPS connection
 
-    this.websocketFromDevice = this.ciraHandler.SetupCiraChannel(devices[params.host].ciraSocket, params.port)
+    this.websocketFromDevice = await this.ciraHandler.SetupCiraChannel(devices[params.host].ciraSocket, params.port)
     this.websocketFromDevice.write = null
     // this.websocketFromDevice.xtls = 0
     this.websocketFromDevice.onData = (data: any): void => {

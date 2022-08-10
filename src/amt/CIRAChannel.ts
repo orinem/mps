@@ -127,6 +127,7 @@ export class CIRAChannel {
     this.state = 0
     this.closing = 1
     APFProcessor.SendChannelClose(this.socket, this.amtchannelid)
+    this.resolve?.(null)
     return this.state
   }
 }

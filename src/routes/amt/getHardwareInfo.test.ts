@@ -14,13 +14,14 @@ import { messages } from '../../logging'
 describe('Hardware information', () => {
   let resSpy
   let req
-  const getSpy = jest.spyOn(hw, 'get')
+  let getSpy
   let ComputerSystemPackageSpy, ChassisSpy, CardSpy, BIOSElementSpy, ProcessorSpy
   let PhysicalMemorySpy, MediaAccessDeviceSpy, PhysicalPackageSpy, SystemPackagingSpy, ChipSpy
 
   beforeEach(() => {
     const handler = new CIRAHandler(new HttpHandler(), 'admin', 'P@ssw0rd')
     const device = new DeviceAction(handler, null)
+    getSpy = jest.spyOn(hw, 'get')
     resSpy = createSpyObj('Response', ['status', 'json', 'end', 'send'])
     req = { params: { guid: '4c4c4544-004b-4210-8033-b6c04f504633' }, deviceAction: device }
     resSpy.status.mockReturnThis()
@@ -73,6 +74,7 @@ describe('Hardware information', () => {
   })
   it('should handle error 500', async () => {
     getSpy.mockImplementation(() => {
+      console.log('mock get')
       throw new Error()
     })
     await hw.hardwareInfo(req, resSpy)

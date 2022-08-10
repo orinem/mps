@@ -46,7 +46,7 @@ describe('WsRedirect tests', () => {
       }
       devices[fakeGuid] = new ConnectedDevice(null, 'admin', 'P@ssw0rd')
 
-      const setNormalTCPSpy = jest.spyOn(wsRedirect, 'setNormalTCP').mockReturnValue()
+      const setNormalTCPSpy = jest.spyOn(wsRedirect, 'setNormalTCP').mockImplementationOnce(async () => await Promise.resolve())
       const publishEventSpy = jest.spyOn(MqttProvider, 'publishEvent')
       await wsRedirect.handleConnection(mockIncomingMessage as any)
 
@@ -120,7 +120,7 @@ describe('WsRedirect tests', () => {
   })
 
   describe('setnormalTCP test', () => {
-    it('should set normal tcp socket for mps connection', () => {
+    it('should set normal tcp socket for mps connection', async () => {
       const params: queryParams = {
         host: fakeGuid,
         port: 16994
@@ -138,7 +138,7 @@ describe('WsRedirect tests', () => {
       } as any
       const setupCIRASpy = jest.spyOn(wsRedirect.ciraHandler, 'SetupCiraChannel').mockReturnValue(mockCiraChannel)
 
-      wsRedirect.setNormalTCP(params)
+      await wsRedirect.setNormalTCP(params)
       expect(setupCIRASpy).toHaveBeenCalled()
       expect(resumeSpy).toHaveBeenCalled()
     })

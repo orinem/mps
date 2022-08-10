@@ -41,7 +41,7 @@ export class DeviceAction {
   async getSoftwareIdentity (): Promise<Common.Models.Pull<CIM.Models.SoftwareIdentity>> {
     logger.silly(`getSoftwareIdentity enumeration ${messages.REQUEST}`)
     const result = await this.ciraHandler.Enumerate(this.ciraSocket, this.cim.SoftwareIdentity(CIM.Methods.ENUMERATE))
-    logger.info('getSoftwareIdentity enumeration result :', JSON.stringify(result, null, '\t'))
+    logger.info('getSoftwareIdentity enumeration result: ' + JSON.stringify(result, null, '\t'))
     const enumContext: string = result?.Envelope.Body?.EnumerateResponse?.EnumerationContext
     if (enumContext == null) {
       logger.error(`getSoftwareIdentity failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
@@ -49,7 +49,7 @@ export class DeviceAction {
     }
     logger.silly(`getSoftwareIdentity pull ${messages.REQUEST}`)
     const pullResponse = await this.ciraHandler.Pull<CIM.Models.SoftwareIdentity>(this.ciraSocket, this.cim.SoftwareIdentity(CIM.Methods.PULL, enumContext))
-    logger.info('getSoftwareIdentity pullResponse :', JSON.stringify(pullResponse, null, '\t'))
+    logger.info('getSoftwareIdentity pullResponse: ' + JSON.stringify(pullResponse, null, '\t'))
     logger.silly(`getSoftwareIdentity ${messages.COMPLETE}`)
     return pullResponse.Envelope.Body
   }
@@ -156,7 +156,7 @@ export class DeviceAction {
     logger.silly(`getSetupAndConfigurationService ${messages.REQUEST}`)
     const xmlRequestBody = this.amt.SetupAndConfigurationService(AMT.Methods.GET)
     const getResponse = await this.ciraHandler.Get<AMT.Models.SetupAndConfigurationService>(this.ciraSocket, xmlRequestBody)
-    logger.info('getSetupAndConfigurationService result :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getSetupAndConfigurationService result: ' + JSON.stringify(getResponse, null, '\t'))
     logger.silly(`getSetupAndConfigurationService ${messages.COMPLETE}`)
     return getResponse.Envelope
   }
@@ -173,7 +173,7 @@ export class DeviceAction {
     logger.silly(`getPowerCapabilities ${messages.REQUEST}`)
     const xmlRequestBody = this.amt.BootCapabilities(AMT.Methods.GET)
     const result = await this.ciraHandler.Get<AMT.Models.BootCapabilities>(this.ciraSocket, xmlRequestBody)
-    logger.info(JSON.stringify(result))
+    logger.info('getPowerCapabilities result: ' + JSON.stringify(result))
     logger.silly(`getPowerCapabilities ${messages.COMPLETE}`)
     return result.Envelope
   }
@@ -206,7 +206,7 @@ export class DeviceAction {
     logger.silly(`getComputerSystemPackage ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.ComputerSystemPackage(CIM.Methods.GET)
     const getResponse = await this.ciraHandler.Get<CIM.Models.ComputerSystemPackage>(this.ciraSocket, xmlRequestBody)
-    logger.info('getComputerSystemPackage getResponse :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getComputerSystemPackage getResponse: ' + JSON.stringify(getResponse, null, '\t'))
     logger.silly(`getComputerSystemPackage ${messages.COMPLETE}`)
     return getResponse.Envelope
   }
@@ -215,7 +215,7 @@ export class DeviceAction {
     logger.silly(`getChassis ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.Chassis(CIM.Methods.GET)
     const getResponse = await this.ciraHandler.Get<CIM.Models.Chassis>(this.ciraSocket, xmlRequestBody)
-    logger.info('getChassis getChassis :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getChassis getResponse: ' + JSON.stringify(getResponse, null, '\t'))
     logger.silly(`getChassis ${messages.COMPLETE}`)
     return getResponse.Envelope
   }
@@ -224,7 +224,7 @@ export class DeviceAction {
     logger.silly(`getCard ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.Card(CIM.Methods.GET)
     const getResponse = await this.ciraHandler.Get<CIM.Models.Card>(this.ciraSocket, xmlRequestBody)
-    logger.info('getCard getResponse :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getCard getResponse: ' + JSON.stringify(getResponse, null, '\t'))
     logger.silly(`getCard ${messages.COMPLETE}`)
     return getResponse.Envelope
   }
@@ -233,7 +233,7 @@ export class DeviceAction {
     logger.silly(`getBIOSElement ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.BIOSElement(CIM.Methods.GET)
     const getResponse = await this.ciraHandler.Get<CIM.Models.BIOSElement>(this.ciraSocket, xmlRequestBody)
-    logger.info('getBIOSElement getResponse :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getBIOSElement getResponse: ' + JSON.stringify(getResponse, null, '\t'))
     logger.silly(`getBIOSElement ${messages.COMPLETE}`)
     return getResponse.Envelope
   }
@@ -242,7 +242,6 @@ export class DeviceAction {
     logger.silly(`getProcessor ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.Processor(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
-    console.log(JSON.stringify(enumResponse))
     if (enumResponse == null) {
       logger.error(`getProcessor failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
       return null
@@ -336,7 +335,7 @@ export class DeviceAction {
     }
     xmlRequestBody = this.amt.MessageLog(AMT.Methods.GET_RECORDS, Number(response.Envelope.Body.PositionToFirstRecord_OUTPUT.IterationIdentifier))
     const eventLogs = await this.ciraHandler.Get<AMT.Models.MessageLog>(this.ciraSocket, xmlRequestBody)
-    logger.info('getEventLog response :', JSON.stringify(eventLogs, null, '\t'))
+    logger.info('getEventLog response: ' + JSON.stringify(eventLogs, null, '\t'))
     logger.silly(`getEventLog ${messages.COMPLETE}`)
     return eventLogs.Envelope
   }
@@ -345,7 +344,7 @@ export class DeviceAction {
     logger.silly(`getAuditLog ${messages.REQUEST}`)
     const xmlRequestBody = this.amt.AuditLog(AMT.Methods.READ_RECORDS, startIndex)
     const getResponse = await this.ciraHandler.Get<AMT.Models.AuditLog_ReadRecords>(this.ciraSocket, xmlRequestBody)
-    logger.info('getAuditLog response :', JSON.stringify(getResponse, null, '\t'))
+    logger.info('getAuditLog response: ' + JSON.stringify(getResponse, null, '\t'))
 
     if (getResponse == null) {
       logger.error(`failed to get audit log. Reason: ${messages.RESPONSE_NULL}`)
@@ -373,6 +372,12 @@ export class DeviceAction {
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     if (enumResponse == null) {
       logger.error(`getAlarmClockOccurrences failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
+      return null
+    }
+    logger.info('getAlarmOccurrences enumeration result: ' + JSON.stringify(enumResponse, null, '\t'))
+    const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
+    if (enumContext == null) {
+      logger.error(`getAlarmOccurrences failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
       return null
     }
     xmlRequestBody = this.ips.AlarmClockOccurrence(IPS.Methods.PULL, enumResponse.Envelope.Body.EnumerateResponse.EnumerationContext)

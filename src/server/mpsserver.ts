@@ -32,6 +32,7 @@ import { IDB } from '../interfaces/IDb'
 import { ISecretManagerService } from '../interfaces/ISecretManagerService'
 import { ConnectedDevice } from '../amt/ConnectedDevice'
 import { MqttProvider } from '../utils/MqttProvider'
+import { Semaphore } from 'await-semaphore'
 // 90 seconds max idle time, higher than the typical KEEP-ALIVE period of 60 seconds
 const MAX_IDLE = 90000
 
@@ -124,7 +125,22 @@ export class MPSServer {
 
   onTLSConnection = (socket: TLSSocket): void => {
     logger.debug(messages.MPS_NEW_TLS_CONNECTION); // New TLS connection detected
-    (socket as CIRASocket).tag = { id: randomBytes(16).toString('hex'), first: true, clientCert: socket.getPeerCertificate(true), accumulator: '', activetunnels: 0, boundPorts: [], socket: socket, host: null, nextchannelid: 4, channels: {}, nextsourceport: 0, nodeid: null }
+    (socket as CIRASocket).tag = {
+      id: randomBytes(16).toString('hex'),
+      first: true,
+      clientCert: socket.getPeerCertificate(true),
+      accumulator: '',
+      activetunnels: 0,
+      boundPorts: [],
+      socket: socket,
+      host: null,
+      nextchannelid: 4,
+      channels: {},
+      nextsourceport: 0,
+      nodeid: null,
+      semaphore: new Semaphore(4),
+      claims: {}
+    }
     this.addHandlers(socket as CIRASocket)
   }
 
