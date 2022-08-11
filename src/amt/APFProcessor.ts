@@ -197,6 +197,7 @@ const APFProcessor = {
     APFProcessor.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
     socket.tag.activetunnels--
     if (socket.tag.claims[RecipientChannel] != null) {
+      logger.silly(`Releasing claim ${RecipientChannel.toString()}`)
       socket.tag.claims[RecipientChannel]()
       delete socket.tag.claims[RecipientChannel]
     }
@@ -214,7 +215,7 @@ const APFProcessor = {
     if (length < 17) return 0
     const recipientChannel = Common.ReadInt(data, 1)
     const reasonCode = Common.ReadInt(data, 5)
-    logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}`)
+    logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}, ${socket.tag.activetunnels.toString()}`)
     if (socket.tag.claims[recipientChannel] != null) {
       socket.tag.claims[recipientChannel]()
       delete socket.tag.claims[recipientChannel]
@@ -518,7 +519,7 @@ const APFProcessor = {
 
   SendChannelOpen: async (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
   ): Promise<void> => {
-    logger.silly(messages.MPS_SEND_CHANNEL_OPEN)
+    logger.silly(`${messages.MPS_SEND_CHANNEL_OPEN}, ${channelid}`)
     const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
     // TODO: Reports of target being undefined that causes target.length to fail. This is a hack.
     if (target == null || typeof target === 'undefined') target = ''

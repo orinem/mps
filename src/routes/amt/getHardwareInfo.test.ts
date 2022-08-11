@@ -74,7 +74,6 @@ describe('Hardware information', () => {
   })
   it('should handle error 500', async () => {
     getSpy.mockImplementation(() => {
-      console.log('mock get')
       throw new Error()
     })
     await hw.hardwareInfo(req, resSpy)

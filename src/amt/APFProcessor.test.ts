@@ -346,6 +346,7 @@ describe('APFProcessor Tests', () => {
       } as any
       const fakeCiraSocket: CIRASocket = {
         tag: {
+          activetunnels: 0,
           channels: [null, fakeCiraChannel],
           claims: { }
         }
@@ -362,6 +363,7 @@ describe('APFProcessor Tests', () => {
   describe('channelOpenFailure() tests', () => {
     const fakeCiraSocket: CIRASocket = {
       tag: {
+        activetunnels: 0,
         channels: [],
         claims: { }
       }
@@ -391,6 +393,7 @@ describe('APFProcessor Tests', () => {
       } as any
       const fakeCiraSocket: CIRASocket = {
         tag: {
+          activetunnels: 0,
           channels: [null, fakeCiraChannel],
           claims: { }
         }
