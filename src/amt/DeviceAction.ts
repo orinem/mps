@@ -24,7 +24,7 @@ export class DeviceAction {
   }
 
   async getPowerState (): Promise<Common.Models.Pull<CIM.Models.AssociatedPowerManagementService>> {
-    logger.silly(`getPowerState ${messages.REQUEST}`)
+    logger.silly(`getPowerState enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.ServiceAvailableToElement(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -238,7 +238,7 @@ export class DeviceAction {
   }
 
   async getProcessor (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.Processor>>> {
-    logger.silly(`getProcessor ${messages.REQUEST}`)
+    logger.silly(`getProcessor enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.Processor(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -254,7 +254,7 @@ export class DeviceAction {
   }
 
   async getPhysicalMemory (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.PhysicalMemory>>> {
-    logger.silly(`getPhysicalMemory ${messages.REQUEST}`)
+    logger.silly(`getPhysicalMemory enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.PhysicalMemory(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -270,7 +270,7 @@ export class DeviceAction {
   }
 
   async getMediaAccessDevice (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.MediaAccessDevice>>> {
-    logger.silly(`getMediaAccessDevice ${messages.REQUEST}`)
+    logger.silly(`getMediaAccessDevice enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.MediaAccessDevice(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -286,7 +286,7 @@ export class DeviceAction {
   }
 
   async getPhysicalPackage (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.PhysicalPackage>>> {
-    logger.silly(`getPhysicalPackage ${messages.REQUEST}`)
+    logger.silly(`getPhysicalPackage enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.PhysicalPackage(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -302,7 +302,7 @@ export class DeviceAction {
   }
 
   async getSystemPackaging (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.SystemPackaging>>> {
-    logger.silly(`getSystemPackaging ${messages.REQUEST}`)
+    logger.silly(`getSystemPackaging enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.SystemPackaging(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -318,7 +318,7 @@ export class DeviceAction {
   }
 
   async getChip (): Promise<Common.Models.Envelope<Common.Models.Pull<CIM.Models.Chip>>> {
-    logger.silly(`getChip ${messages.REQUEST}`)
+    logger.silly(`getChip enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.cim.Chip(CIM.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
@@ -378,7 +378,7 @@ export class DeviceAction {
   }
 
   async getAlarmClockOccurrences (): Promise<Common.Models.Envelope<Common.Models.Pull<IPS.Models.AlarmClockOccurrence>>> {
-    logger.silly(`getAlarmClockOccurrences ${messages.REQUEST}`)
+    logger.silly(`getAlarmClockOccurrences enumeration ${messages.REQUEST}`)
     let xmlRequestBody = this.ips.AlarmClockOccurrence(IPS.Methods.ENUMERATE)
     const enumResponse = await this.ciraHandler.Enumerate(this.ciraSocket, xmlRequestBody)
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
