@@ -312,6 +312,34 @@ describe('APFProcessor Tests', () => {
       expect(fakeCiraChannel.sendcredits).toEqual(0)
       expect(readIntSpy).toHaveBeenCalled()
     })
+
+    it('should not split a final chunked encoding header', () => {
+      const fakeCiraChannel: CIRAChannel = {
+        sendBuffer: 'my fake buffer',
+        sendcredits: 10,
+        socket: {
+          write: jest.fn()
+        },
+        amtchannelid: 0,
+        state: 2
+      } as any
+      const fakeCiraSocket: CIRASocket = {
+        tag: {
+          channels: [fakeCiraChannel]
+        }
+      } as any
+      const data = ''
+      const len = 9
+      const readIntSpy = jest.spyOn(Common, 'ReadInt')
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce(0)
+      const sendChannelDataSpy = jest.spyOn(APFProcessor, 'SendChannelData')
+      const result = APFProcessor.channelWindowAdjust(fakeCiraSocket, len, data)
+      expect(result).toEqual(9)
+      expect(sendChannelDataSpy).toHaveBeenCalled()
+      expect(fakeCiraChannel.sendcredits).toEqual(1)
+      expect(readIntSpy).toHaveBeenCalled()
+    })
   })
 
   describe('channelClose() tests', () => {

@@ -6,6 +6,7 @@
 import { logger, messages } from '../logging'
 import Common from '../utils/common'
 import { CIRASocket } from '../models/models'
+import { CIRAChannel } from './CIRAChannel'
 import { EventEmitter } from 'stream'
 const KEEPALIVE_INTERVAL = 30 // 30 seconds is typical keepalive interval for AMT CIRA connection
 
@@ -155,7 +156,14 @@ const APFProcessor = {
     }
     cirachannel.sendcredits += ByteToAdd
     logger.silly(`${messages.MPS_WINDOW_ADJUST}, ${RecipientChannel.toString()}, ${ByteToAdd.toString()}, ${cirachannel.sendcredits}`)
-    if (cirachannel.state === 2 && cirachannel.sendBuffer != null) {
+    if (cirachannel.state === 2) {
+      APFProcessor.sendPendingData(cirachannel)
+    }
+    return 9
+  },
+
+  sendPendingData (cirachannel: CIRAChannel): void {
+    if (cirachannel.sendBuffer != null) {
       // Compute how much data we can send
       if (cirachannel.sendBuffer.length <= cirachannel.sendcredits) {
         // Send the entire pending buffer
@@ -164,12 +172,17 @@ const APFProcessor = {
         delete cirachannel.sendBuffer
       } else {
         // Send a part of the pending buffer
-        APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, cirachannel.sendcredits))
-        cirachannel.sendBuffer = cirachannel.sendBuffer.substring(cirachannel.sendcredits)
-        cirachannel.sendcredits = 0
+        let toSend = cirachannel.sendcredits
+        if (cirachannel.sendBuffer.length - toSend < 5) {
+          toSend = cirachannel.sendBuffer.length - 5
+        }
+        if (toSend > 0) {
+          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, toSend))
+          cirachannel.sendBuffer = cirachannel.sendBuffer.substring(toSend)
+          cirachannel.sendcredits -= toSend
+        }
       }
     }
-    return 9
   },
 
   channelClose: (socket: CIRASocket, len: number, data: string): number => {
@@ -232,19 +245,7 @@ const APFProcessor = {
     } else {
       cirachannel.state = 2
       // Send any pending data
-      if (cirachannel.sendBuffer != null) {
-        if (cirachannel.sendBuffer.length <= cirachannel.sendcredits) {
-          // Send the entire pending buffer
-          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer)
-          cirachannel.sendcredits -= cirachannel.sendBuffer.length
-          delete cirachannel.sendBuffer
-        } else {
-          // Send a part of the pending buffer
-          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, cirachannel.sendcredits))
-          cirachannel.sendBuffer = cirachannel.sendBuffer.substring(cirachannel.sendcredits)
-          cirachannel.sendcredits = 0
-        }
-      }
+      APFProcessor.sendPendingData(cirachannel)
       // Indicate the channel is open
       if (cirachannel.onStateChange) {
         cirachannel.onStateChange.emit('stateChange', cirachannel.state)
