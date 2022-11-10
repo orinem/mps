@@ -22,7 +22,6 @@ export async function powerAction (req: Request, res: Response): Promise<void> {
     powerAction.Body = powerAction.Body.RequestPowerStateChange_OUTPUT
     MqttProvider.publishEvent('success', ['AMT_PowerAction'], messages.POWER_ACTION_REQUESTED)
     res.status(200).json(powerAction).end()
-    return
   } catch (error) {
     logger.error(`${messages.POWER_ACTION_EXCEPTION} : ${error}`)
     MqttProvider.publishEvent('fail', ['AMT_PowerAction'], messages.INTERNAL_SERVICE_ERROR)

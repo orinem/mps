@@ -32,10 +32,10 @@ export class CIRAHandler {
   }
 
   // Setup CIRA Channel
-  SetupCiraChannel (socket: CIRASocket, targetPort: number): CIRAChannel {
+  async SetupCiraChannel (socket: CIRASocket, targetPort: number): Promise<CIRAChannel> {
     const sourcePort = (socket.tag.nextsourceport++ % 30000) + 1024
     const channel = new CIRAChannel(this.httpHandler, targetPort, socket)
-    APFProcessor.SendChannelOpen(channel.socket, false, channel.channelid, channel.ciraWindow, channel.socket.tag.host, channel.targetport, '1.2.3.4', sourcePort)
+    await APFProcessor.SendChannelOpen(channel.socket, false, channel.channelid, channel.ciraWindow, channel.socket.tag.host, channel.targetport, '1.2.3.4', sourcePort)
     channel.write = async (rawXML: string): Promise<any> => {
       const params: connectionParams = {
         guid: this.channel.socket.tag.nodeid,
@@ -51,8 +51,8 @@ export class CIRAHandler {
   }
 
   async Connect (): Promise<number> {
+    this.channel = await this.SetupCiraChannel(this.socket, amtPort)
     return await new Promise((resolve, reject) => {
-      this.channel = this.SetupCiraChannel(this.socket, amtPort)
       this.channel.onStateChange.on('stateChange', (state: number) => {
         this.channelState = state
         resolve(state)
@@ -60,7 +60,7 @@ export class CIRAHandler {
     })
   }
 
-  async Delete (socket: CIRASocket, rawXml: string): Promise<any> {
+  async Delete<T> (socket: CIRASocket, rawXml: string): Promise<Common.Models.Response<T>> {
     return await this.Send(socket, rawXml)
   }
 
@@ -119,6 +119,9 @@ export class CIRAHandler {
   }
 
   handleResult (data: string): any {
+    if (data == null) {
+      return null
+    }
     const message = httpZ.parse(data) as HttpZResponseModel
     if (message.statusCode === 401) {
       this.connectAttempts++

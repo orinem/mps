@@ -23,7 +23,7 @@ export async function deleteAlarmOccurrence (req: Request, res: Response): Promi
       res.status(400).json(ErrorResponse(400, `${messages.ALARM_OCCURRENCES_INVALID_REQUEST} for guid : ${guid}.`))
     } else {
       const selector: Selector = {
-        name: 'Name',
+        name: 'InstanceID',
         value: payload.Name
       }
       const response = await deleteAlarm(req.deviceAction, selector, guid)
@@ -32,7 +32,7 @@ export async function deleteAlarmOccurrence (req: Request, res: Response): Promi
         MqttProvider.publishEvent('fail', ['AMT_AlarmOccurrences'], messages.ALARM_OCCURRENCES_DELETE_REQUEST_FAILED, guid)
         res.status(400).json(ErrorResponse(400, `${messages.ALARM_OCCURRENCES_DELETE_REQUEST_FAILED} for guid : ${guid}.`))
       } else {
-        if (response.Header.Action === 'http://schemas.xmlsoap.org/ws/2004/09/enumeration/DeleteResponse') {
+        if (response.Header.Action === 'http://schemas.xmlsoap.org/ws/2004/09/transfer/DeleteResponse') {
           MqttProvider.publishEvent('success', ['AMT_AlarmOccurrences'], messages.ALARM_OCCURRENCES_DELETE_SUCCESS, guid)
           res.status(200).json({ status: 'SUCCESS' })
         } else {

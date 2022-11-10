@@ -943,7 +943,7 @@ export const deleteAlarmClockOccurrence = {
     Header: {
       To: 'http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous',
       RelatesTo: '19',
-      Action: 'http://schemas.xmlsoap.org/ws/2004/09/enumeration/DeleteResponse',
+      Action: 'http://schemas.xmlsoap.org/ws/2004/09/transfer/DeleteResponse',
       MessageID: 'uuid:00000000-8086-8086-8086-000000000260',
       ResourceURI: 'http://schemas.dmtf.org/wbem/wscim/1/ips-schema/1/IPS_AlarmClockOccurrence'
     }

@@ -34,6 +34,7 @@ export async function setAlarmOccurrence (req: Request, res: Response): Promise<
         Interval: payload.Interval ?? 0,
         DeleteOnCompletion: payload.DeleteOnCompletion ?? true
       }
+      logger.silly('AlarmClockOccurrence: ' + JSON.stringify(alarm, null, '\t'))
       const response = await setAlarm(req.deviceAction, alarm, guid)
       if (response == null) {
         logger.error(`${messages.ALARM_ADD_REQUEST_FAILED} for guid : ${guid}.`)
@@ -46,7 +47,7 @@ export async function setAlarmOccurrence (req: Request, res: Response): Promise<
           res.status(200).json({ status: 'SUCCESS', ReturnValue: response.Body.AddAlarm_OUTPUT.ReturnValue })
         } else {
           logger.error(`${messages.ALARM_ADD_REQUEST_FAILED} for guid : ${guid}.`)
-          logger.info(JSON.stringify(response, null, '\t'))
+          logger.info('setAlarmOccurrence failed: ' + JSON.stringify(response, null, '\t'))
           MqttProvider.publishEvent('fail', ['AMT_AddAlarm'], messages.ALARM_ADD_REQUEST_FAILED, guid)
           const subcodeValue = response.Body.Fault.Code.Subcode.Value
           if (subcodeValue.includes('QuotaLimit')) {
@@ -59,6 +60,7 @@ export async function setAlarmOccurrence (req: Request, res: Response): Promise<
     }
   } catch (error) {
     logger.error(`${messages.ALARM_OCCURRENCES_EXCEPTION} : ${error}`)
+    logger.info(error.stack)
     MqttProvider.publishEvent('fail', ['AMT_AddAlarm'], messages.INTERNAL_SERVICE_ERROR)
     res.status(500).json(ErrorResponse(500, messages.ALARM_OCCURRENCES_EXCEPTION))
   }

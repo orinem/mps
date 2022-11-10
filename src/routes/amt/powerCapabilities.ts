@@ -19,7 +19,6 @@ export async function powerCapabilities (req: Request, res: Response): Promise<v
     const bootCaps = bootCapabilities(version, powerCapabilities.Body.AMT_BootCapabilities)
     MqttProvider.publishEvent('success', ['AMT_BootCapabilities'], messages.POWER_CAPABILITIES_SUCCESS, guid)
     res.status(200).json(bootCaps).end()
-    return
   } catch (error) {
     logger.error(`${messages.POWER_CAPABILITIES_EXCEPTION} : ${error}`)
     MqttProvider.publishEvent('fail', ['AMT_BootCapabilities'], messages.INTERNAL_SERVICE_ERROR)

@@ -6,6 +6,7 @@
 import { logger, messages } from '../logging'
 import Common from '../utils/common'
 import { CIRASocket } from '../models/models'
+import { CIRAChannel } from './CIRAChannel'
 import { EventEmitter } from 'stream'
 const KEEPALIVE_INTERVAL = 30 // 30 seconds is typical keepalive interval for AMT CIRA connection
 
@@ -155,49 +156,82 @@ const APFProcessor = {
     }
     cirachannel.sendcredits += ByteToAdd
     logger.silly(`${messages.MPS_WINDOW_ADJUST}, ${RecipientChannel.toString()}, ${ByteToAdd.toString()}, ${cirachannel.sendcredits}`)
-    if (cirachannel.state === 2 && cirachannel.sendBuffer != null) {
+    if (cirachannel.state === 2) {
+      APFProcessor.sendPendingData(cirachannel)
+    }
+    return 9
+  },
+
+  sendPendingData (cirachannel: CIRAChannel): void {
+    if (cirachannel.sendBuffer != null) {
       // Compute how much data we can send
       if (cirachannel.sendBuffer.length <= cirachannel.sendcredits) {
         // Send the entire pending buffer
-        APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer)
+        APFProcessor.SendChannelData(cirachannel, cirachannel.sendBuffer)
         cirachannel.sendcredits -= cirachannel.sendBuffer.length
         delete cirachannel.sendBuffer
       } else {
         // Send a part of the pending buffer
-        APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, cirachannel.sendcredits))
-        cirachannel.sendBuffer = cirachannel.sendBuffer.substring(cirachannel.sendcredits)
-        cirachannel.sendcredits = 0
+        let toSend = cirachannel.sendcredits
+        if (cirachannel.sendBuffer.length - toSend < 5) {
+          toSend = cirachannel.sendBuffer.length - 5
+        }
+        if (toSend > 0) {
+          APFProcessor.SendChannelData(cirachannel, cirachannel.sendBuffer.substring(0, toSend))
+          cirachannel.sendBuffer = cirachannel.sendBuffer.substring(toSend)
+          cirachannel.sendcredits -= toSend
+        }
       }
     }
-    return 9
   },
 
   channelClose: (socket: CIRASocket, len: number, data: string): number => {
     if (len < 5) return 0
     const RecipientChannel: number = Common.ReadInt(data, 1)
-    logger.silly(`${messages.MPS_CHANNEL_CLOSE} ${RecipientChannel.toString()}`)
     const cirachannel = socket.tag.channels[RecipientChannel]
     if (cirachannel == null) {
       logger.error(`${messages.CHANNEL_CLOSE_NO_CHANNEL_ID} ${RecipientChannel}`)
       return 5
     }
-    APFProcessor.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
-    socket.tag.activetunnels--
+    logger.silly(`${messages.MPS_CHANNEL_CLOSE} ${RecipientChannel.toString()}, ${cirachannel.amtchannelid.toString()}`)
+    APFProcessor.SendChannelClose(cirachannel)
+
+    APFProcessor.channelCleanup(cirachannel)
+
+    return 5
+  },
+
+  channelCleanup: (cirachannel: CIRAChannel): void => {
+    const tag = cirachannel.socket.tag
+    const channelid = cirachannel.channelid
+    if (tag.claims[channelid] != null) {
+      logger.silly(`Releasing semaphore for ${channelid.toString()}, claims: ${tag.semaphore.count}`)
+      tag.claims[channelid]()
+      delete tag.claims[channelid]
+    }
+
     if (cirachannel.state > 0) {
+      tag.activetunnels--
       cirachannel.state = 0
       if (cirachannel.onStateChange) {
         cirachannel.onStateChange.emit('stateChange', cirachannel.state)
       }
-      delete socket.tag.channels[RecipientChannel]
+      delete tag.channels[channelid]
     }
-    return 5
   },
 
   channelOpenFailure: (socket: CIRASocket, length: number, data: string): number => {
     if (length < 17) return 0
     const recipientChannel = Common.ReadInt(data, 1)
     const reasonCode = Common.ReadInt(data, 5)
-    logger.silly(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}`)
+    logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}, ${socket.tag.activetunnels.toString()}`)
+
+    if (socket.tag.claims[recipientChannel] != null) {
+      logger.silly(`Releasing semaphore for ${recipientChannel.toString()}, claims: ${socket.tag.semaphore.count}`)
+      socket.tag.claims[recipientChannel]()
+      delete socket.tag.claims[recipientChannel]
+    }
+
     const cirachannel = socket.tag.channels[recipientChannel]
     if (cirachannel == null) {
       logger.error(`${messages.CHANNEL_OPEN_FAILURE_NO_CHANNEL_ID} ${recipientChannel}`)
@@ -228,23 +262,11 @@ const APFProcessor = {
     logger.silly(`${messages.MPS_CHANNEL_OPEN_CONFIRMATION}, ${recipientChannel.toString()}, ${senderChannel.toString()}, ${windowSize.toString()}`)
     if (cirachannel.closing === 1) {
       // Close this channel
-      APFProcessor.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
+      APFProcessor.SendChannelClose(cirachannel)
     } else {
       cirachannel.state = 2
       // Send any pending data
-      if (cirachannel.sendBuffer != null) {
-        if (cirachannel.sendBuffer.length <= cirachannel.sendcredits) {
-          // Send the entire pending buffer
-          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer)
-          cirachannel.sendcredits -= cirachannel.sendBuffer.length
-          delete cirachannel.sendBuffer
-        } else {
-          // Send a part of the pending buffer
-          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, cirachannel.sendcredits))
-          cirachannel.sendBuffer = cirachannel.sendBuffer.substring(cirachannel.sendcredits)
-          cirachannel.sendcredits = 0
-        }
-      }
+      APFProcessor.sendPendingData(cirachannel)
       // Indicate the channel is open
       if (cirachannel.onStateChange) {
         cirachannel.onStateChange.emit('stateChange', cirachannel.state)
@@ -507,12 +529,18 @@ const APFProcessor = {
     )
   },
 
-  SendChannelOpen: (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
-  ): void => {
-    logger.silly(messages.MPS_SEND_CHANNEL_OPEN)
+  SendChannelOpen: async (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
+  ): Promise<void> => {
     const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
     // TODO: Reports of target being undefined that causes target.length to fail. This is a hack.
     if (target == null || typeof target === 'undefined') target = ''
+
+    logger.silly(`${messages.MPS_SEND_CHANNEL_OPEN}, ${connectionType}, ${channelid}, ${windowSize}, ${target}:${targetPort}, ${source}:${sourcePort}`)
+
+    socket.tag.claims[channelid] = await socket.tag.semaphore.acquire()
+
+    logger.silly(`Acquired semaphore for ${channelid.toString()}, claims: ${socket.tag.semaphore.count}`)
+
     APFProcessor.Write(
       socket,
       String.fromCharCode(APFProtocol.CHANNEL_OPEN) +
@@ -530,20 +558,25 @@ const APFProcessor = {
     )
   },
 
-  SendChannelClose: (socket: CIRASocket, channelid): void => {
-    logger.silly(`${messages.MPS_SEND_CHANNEL_CLOSE}, ${channelid}`)
-    APFProcessor.Write(socket, String.fromCharCode(APFProtocol.CHANNEL_CLOSE) + Common.IntToStr(channelid))
+  SendChannelClose: (cirachannel: CIRAChannel): void => {
+    if (!cirachannel.closeSent) {
+      cirachannel.closeSent = true
+      logger.silly(`${messages.MPS_SEND_CHANNEL_CLOSE}, ${cirachannel.amtchannelid}`)
+      APFProcessor.Write(cirachannel.socket, String.fromCharCode(APFProtocol.CHANNEL_CLOSE) + Common.IntToStr(cirachannel.amtchannelid))
+    } else {
+      logger.info(`${messages.MPS_SEND_CHANNEL_CLOSE}, duplicate close for ${cirachannel.amtchannelid}`)
+    }
   },
 
-  SendChannelData: (socket: CIRASocket, channelid, data): void => {
-    logger.silly(`${messages.MPS_SEND_CHANNEL_DATA}, ${channelid}`)
-    APFProcessor.Write(
-      socket,
-      String.fromCharCode(APFProtocol.CHANNEL_DATA) +
-        Common.IntToStr(channelid) +
-        Common.IntToStr(data.length) +
-        data
-    )
+  SendChannelData: (cirachannel: CIRAChannel, data): void => {
+    logger.silly(`${messages.MPS_SEND_CHANNEL_DATA}, ${cirachannel.channelid}, ${cirachannel.amtchannelid}, ${data.length}`)
+    const buffer = Buffer.from(String.fromCharCode(APFProtocol.CHANNEL_DATA) + Common.IntToStr(cirachannel.amtchannelid) + Common.IntToStr(data.length) + data, 'binary')
+    cirachannel.socket.write(buffer, (err?: Error) => {
+      if (err) {
+        logger.error(`SendChannelData failed: ${JSON.stringify(err)}`)
+        APFProcessor.channelCleanup(cirachannel)
+      }
+    })
   },
 
   SendChannelWindowAdjust: (socket: CIRASocket, channelid, bytestoadd): void => {
@@ -583,7 +616,12 @@ const APFProcessor = {
   },
 
   Write: (socket: CIRASocket, data): void => {
-    socket.write(Buffer.from(data, 'binary'))
+    socket.write(Buffer.from(data, 'binary'), (err?: Error) => {
+      if (err) {
+        logger.error(`write failed: ${JSON.stringify(err)}`)
+        // Do something!
+      }
+    })
   },
 
   guidToStr: (g): string => {
