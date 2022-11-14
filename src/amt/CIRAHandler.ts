@@ -11,11 +11,27 @@ import { AMTPort } from '../utils/constants'
 import { Common } from '@open-amt-cloud-toolkit/wsman-messages'
 import { CIRAChannel } from './CIRAChannel'
 import { parseBody } from '../utils/parseWSManResponseBody'
+import { Semaphore } from 'await-semaphore'
+
 export interface PendingRequests {
   xml?: string
   response?: HttpZResponseModel | string
   messageId?: string
 }
+// export class CIRAHandler {
+//   xml: string
+//   httpHandler: HttpHandler
+//   username: string
+//   password: string
+//   channel: CIRAChannel
+//   channelState: number = 0
+//   connectAttempts: number = 0
+//   socket: CIRASocket
+//   constructor (httpHandler: HttpHandler, username: string, password: string) {
+//     this.username = username
+//     this.password = password
+//     this.httpHandler = httpHandler
+//   }
 export class CIRAHandler {
   xml: string
   httpHandler: HttpHandler
@@ -25,10 +41,13 @@ export class CIRAHandler {
   channelState: number = 0
   connectAttempts: number = 0
   socket: CIRASocket
+  semaphore: Semaphore
   constructor (httpHandler: HttpHandler, username: string, password: string) {
     this.username = username
     this.password = password
     this.httpHandler = httpHandler
+    // I chose 4 simultaneous channels, half the assumed maximum
+    this.semaphore = new Semaphore(4)
   }
 
   // Setup CIRA Channel
@@ -147,5 +166,41 @@ export class CIRAHandler {
       response.statusCode = message.statusCode
       return response
     }
+  }
+
+  async ExecRequest (xml: string): Promise<any> {
+    // If it weren't for the recursive call, we could probably
+    // wrap the entire function contents with this.semaphore.use()
+    const release = await this.semaphore.acquire()
+    if (this.channelState === 0) {
+      this.channelState = await this.Connect()
+    }
+    if (this.channelState === 2) {
+      try {
+        if (this.httpHandler.isAuthInProgress == null) {
+          this.httpHandler.isAuthInProgress = new Promise((resolve, reject) => {
+            this.httpHandler.authResolve = resolve
+          })
+        } else {
+          await this.httpHandler.isAuthInProgress
+        }
+        const data = await this.channel.write(xml)
+        const parsedData = this.handleResult(data)
+        release()
+        return parsedData
+      } catch (error) {
+        if (error?.message === 'Unauthorized' || error?.message === 'Closed') {
+          this.channelState = this.channel.CloseChannel()
+          release()
+          return await this.ExecRequest(xml)
+        } else {
+          release()
+          throw error
+        }
+      }
+    }
+
+    release()
+    return null
   }
 }
