@@ -100,34 +100,34 @@ export class CIRAHandler {
     return await this.ExecRequest(rawXml)
   }
 
-  async ExecRequest (xml: string): Promise<any> {
-    if (this.channelState === 0) {
-      this.channelState = await this.Connect()
-    }
-    if (this.channelState === 2) {
-      try {
-        if (this.httpHandler.isAuthInProgress == null) {
-          this.httpHandler.isAuthInProgress = new Promise((resolve, reject) => {
-            this.httpHandler.authResolve = resolve
-          })
-        } else {
-          await this.httpHandler.isAuthInProgress
-        }
-        const data = await this.channel.write(xml)
-        const parsedData = this.handleResult(data)
-        return parsedData
-      } catch (error) {
-        if (error?.message === 'Unauthorized' || error?.message === 'Closed') {
-          this.channelState = this.channel.CloseChannel()
-          return await this.ExecRequest(xml)
-        } else {
-          throw error
-        }
-      }
-    }
+  // // async ExecRequest (xml: string): Promise<any> {
+  // //   if (this.channelState === 0) {
+  // //     this.channelState = await this.Connect()
+  // //   }
+  // //   if (this.channelState === 2) {
+  // //     try {
+  // //       if (this.httpHandler.isAuthInProgress == null) {
+  // //         this.httpHandler.isAuthInProgress = new Promise((resolve, reject) => {
+  // //           this.httpHandler.authResolve = resolve
+  // //         })
+  // //       } else {
+  // //         await this.httpHandler.isAuthInProgress
+  // //       }
+  // //       const data = await this.channel.write(xml)
+  // //       const parsedData = this.handleResult(data)
+  // //       return parsedData
+  // //     } catch (error) {
+  // //       if (error?.message === 'Unauthorized' || error?.message === 'Closed') {
+  // //         this.channelState = this.channel.CloseChannel()
+  // //         return await this.ExecRequest(xml)
+  // //       } else {
+  // //         throw error
+  // //       }
+  // //     }
+  // //   }
 
-    return null
-  }
+  //   return null
+  // }
 
   handleAuth (message: HttpZResponseModel): Common.Models.DigestChallenge {
     const found = message.headers.find(item => item.name === 'Www-Authenticate')
