@@ -12,6 +12,7 @@ import { Common } from '@open-amt-cloud-toolkit/wsman-messages'
 import { CIRAChannel } from './CIRAChannel'
 import { parseBody } from '../utils/parseWSManResponseBody'
 import { Semaphore } from 'await-semaphore'
+import { logger } from '../logging'
 
 export interface PendingRequests {
   xml?: string
@@ -185,6 +186,9 @@ export class CIRAHandler {
           await this.httpHandler.isAuthInProgress
         }
         const data = await this.channel.write(xml)
+        console.log('<>Start<>')
+        console.log(data)
+        console.log('()End()')
         const parsedData = this.handleResult(data)
         release()
         return parsedData
