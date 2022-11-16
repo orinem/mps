@@ -28,7 +28,7 @@ export class CIRAHandler {
   channelState: number = 0
   connectAttempts: number = 0
   socket: CIRASocket
-  constructor (httpHandler: HttpHandler, username: string, password: string, public limiter: Bottleneck = {} as any) {
+  constructor (httpHandler: HttpHandler, username: string, password: string, public limiter: Bottleneck = new Bottleneck()) {
     this.username = username
     this.password = password
     this.httpHandler = httpHandler

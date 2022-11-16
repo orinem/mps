@@ -71,7 +71,7 @@ describe('Alarm Clock Occurrences', () => {
     expect(resSpy.json).toHaveBeenCalledWith({ error: 'Incorrect URI or Bad Request', errorDescription: `${messages.ALARM_OCCURRENCES_GET_REQUEST_FAILED} for guid : 4c4c4544-004b-4210-8033-b6c04f504633.` })
   })
   it('should handle error 500', async () => {
-    getSpy.mockImplementation(async (device: DeviceAction, guid: string): Promise<any> => {
+    getSpy.mockImplementation( () => {
       throw new Error()
     })
     await alarms.getAlarmOccurrences(req, resSpy)

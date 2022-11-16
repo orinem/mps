@@ -384,6 +384,7 @@ export class DeviceAction {
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
     if (enumContext == null) {
       logger.error(`getAlarmOccurrences failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
+      logger.silly(' enumeration result: ' + JSON.stringify(enumResponse, null, '\t'))
       return null
     }
     xmlRequestBody = this.ips.AlarmClockOccurrence(IPS.Methods.PULL, enumResponse.Envelope.Body.EnumerateResponse.EnumerationContext)

@@ -345,6 +345,7 @@ describe('APFProcessor Tests', () => {
       } as any
       const fakeCiraSocket: CIRASocket = {
         tag: {
+          activetunnels: 0,
           channels: [null, fakeCiraChannel]
         }
       } as any
