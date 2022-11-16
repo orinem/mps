@@ -7,7 +7,6 @@ import { Socket } from 'net'
 import { DetailedPeerCertificate, TLSSocket } from 'tls'
 import { CIRAChannel } from '../amt/CIRAChannel'
 import WebSocket from 'ws'
-import { Semaphore } from 'await-semaphore'
 
 export interface Device {
   connectionStatus: boolean
@@ -55,8 +54,6 @@ export interface CIRASocket extends TLSSocket {
     MajorVersion?: Number
     MinorVersion?: Number
     certauth?: string
-    semaphore: Semaphore
-    claims: { [key: string]: () => void }
   }
 }
 export interface HealthCheck {

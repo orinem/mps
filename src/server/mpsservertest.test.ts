@@ -38,6 +38,9 @@ describe('MPS Server', function () {
       getById: async (guid) => { return device as Device },
       getByTags: async (tags) => { return [device] as Device[] },
       getByHostname: async (hostname) => { return [device] as Device[] },
+      getConnectedDevices: async (tenantId?) => {
+        return 0
+      },
       clearInstanceStatus: async () => {},
       delete: async (guid) => { return true },
       insert: async (device) => { return device },
@@ -54,7 +57,8 @@ describe('MPS Server', function () {
       getSecretFromKey: async (path: string, key: string) => { return 'P@ssw0rd' },
       getSecretAtPath: async (path: string) => { return {} as any },
       getAMTCredentials: async (path: string) => { return ['admin', 'P@ssw0rd'] },
-      health: async () => { return {} }
+      health: async () => { return {} },
+      deleteSecretAtPath: async (path: string) => { }
     }
     certs = {
       mps_tls_config: {} as any,

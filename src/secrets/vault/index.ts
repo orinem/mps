@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
 
-import { ISecretManagerService } from '../interfaces/ISecretManagerService'
-import { certificatesType } from '../models/Config'
+import { ISecretManagerService } from '../../interfaces/ISecretManagerService'
+import { certificatesType } from '../../models/Config'
 import got, { Got } from 'got'
-import { Environment } from './Environment'
-import { DeviceSecrets } from '../models/models'
-import { ILogger } from '../interfaces/ILogger'
-import { messages } from '../logging'
+import { Environment } from '../../utils/Environment'
+import { DeviceSecrets } from '../../models/models'
+import { ILogger } from '../../interfaces/ILogger'
+import { messages } from '../../logging'
 
-export class SecretManagerService implements ISecretManagerService {
+export class VaultSecretManagerService implements ISecretManagerService {
   gotClient: Got
   logger: ILogger
   constructor (logger: ILogger) {
@@ -81,6 +81,16 @@ export class SecretManagerService implements ISecretManagerService {
     return certs
   }
 
+  async deleteSecretAtPath (path: string): Promise<void> {
+    // to permanently delete the key, we use metadata path
+    const basePath = Environment.Config.secrets_path.replace('/data/', '/metadata/')
+    this.logger.verbose(`Deleting data from vault:${path}`)
+    await this.gotClient.delete(`${path}`, {
+      prefixUrl: `${Environment.Config.vault_address}/v1/${basePath}`
+    }).json()
+    this.logger.debug(`Successfully Deleted data from vault: ${path}`)
+  }
+
   async health (): Promise<any> {
     const rspJson: any = await this.gotClient.get('sys/health', {
       prefixUrl: `${Environment.Config.vault_address}/v1/`
@@ -88,3 +98,4 @@ export class SecretManagerService implements ISecretManagerService {
     return rspJson
   }
 }
+export default VaultSecretManagerService

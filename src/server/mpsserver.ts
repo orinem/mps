@@ -32,7 +32,6 @@ import { IDB } from '../interfaces/IDb'
 import { ISecretManagerService } from '../interfaces/ISecretManagerService'
 import { ConnectedDevice } from '../amt/ConnectedDevice'
 import { MqttProvider } from '../utils/MqttProvider'
-import { Semaphore } from 'await-semaphore'
 // 90 seconds max idle time, higher than the typical KEEP-ALIVE period of 60 seconds
 const MAX_IDLE = 90000
 
@@ -146,9 +145,7 @@ export class MPSServer {
       nextchannelid: 4,
       channels: {},
       nextsourceport: 0,
-      nodeid: null,
-      semaphore: new Semaphore(3),
-      claims: {}
+      nodeid: null
     }
     this.addHandlers(socket as CIRASocket)
   }

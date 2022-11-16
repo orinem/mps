@@ -204,11 +204,6 @@ const APFProcessor = {
   channelCleanup: (cirachannel: CIRAChannel): void => {
     const tag = cirachannel.socket.tag
     const channelid = cirachannel.channelid
-    if (tag.claims[channelid] != null) {
-      logger.silly(`Releasing semaphore for ${channelid.toString()}, claims: ${tag.semaphore.count}`)
-      tag.claims[channelid]()
-      delete tag.claims[channelid]
-    }
 
     if (cirachannel.state > 0) {
       tag.activetunnels--
@@ -224,14 +219,7 @@ const APFProcessor = {
     if (length < 17) return 0
     const recipientChannel = Common.ReadInt(data, 1)
     const reasonCode = Common.ReadInt(data, 5)
-    logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}, ${socket.tag.activetunnels.toString()}`)
-
-    if (socket.tag.claims[recipientChannel] != null) {
-      logger.silly(`Releasing semaphore for ${recipientChannel.toString()}, claims: ${socket.tag.semaphore.count}`)
-      socket.tag.claims[recipientChannel]()
-      delete socket.tag.claims[recipientChannel]
-    }
-
+    logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}`)
     const cirachannel = socket.tag.channels[recipientChannel]
     if (cirachannel == null) {
       logger.error(`${messages.CHANNEL_OPEN_FAILURE_NO_CHANNEL_ID} ${recipientChannel}`)
@@ -536,10 +524,6 @@ const APFProcessor = {
     if (target == null || typeof target === 'undefined') target = ''
 
     logger.silly(`${messages.MPS_SEND_CHANNEL_OPEN}, ${connectionType}, ${channelid}, ${windowSize}, ${target}:${targetPort}, ${source}:${sourcePort}`)
-
-    socket.tag.claims[channelid] = await socket.tag.semaphore.acquire()
-
-    logger.silly(`Acquired semaphore for ${channelid.toString()}, claims: ${socket.tag.semaphore.count}`)
 
     APFProcessor.Write(
       socket,

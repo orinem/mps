@@ -12,7 +12,6 @@ import { parseBody } from '../utils/parseWSManResponseBody'
 import APFProcessor from './APFProcessor'
 import { CIRAHandler } from './CIRAHandler'
 import { HttpHandler } from './HttpHandler'
-import { Semaphore } from 'await-semaphore'
 
 describe('CIRA Handler', () => {
   let ciraHandler: CIRAHandler
@@ -165,7 +164,7 @@ describe('CIRA Handler', () => {
   })
   it('should set up a new CIRA channel', async () => {
     const sendChannelSpy = jest.spyOn(APFProcessor, 'SendChannelOpen').mockImplementation(async () => await Promise.resolve())
-    const socket: CIRASocket = { tag: { first: true, activetunnels: 0, boundPorts: [], host: null, nextchannelid: 4, channels: {}, nextsourceport: 0, nodeid: null, semaphore: new Semaphore(3), claims: { } } } as any
+    const socket: CIRASocket = { tag: { first: true, activetunnels: 0, boundPorts: [], host: null, nextchannelid: 4, channels: {}, nextsourceport: 0, nodeid: null } } as any
     const channel = await ciraHandler.SetupCiraChannel(socket, 16692)
     expect(sendChannelSpy).toBeCalledTimes(1)
     expect(channel.state).toEqual(1)
