@@ -517,8 +517,8 @@ const APFProcessor = {
     )
   },
 
-  SendChannelOpen: async (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
-  ): Promise<void> => {
+  SendChannelOpen: (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
+  ): void => {
     const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
     // TODO: Reports of target being undefined that causes target.length to fail. This is a hack.
     if (target == null || typeof target === 'undefined') target = ''

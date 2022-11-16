@@ -162,10 +162,10 @@ describe('CIRA Handler', () => {
     })
     expect(response).toEqual(null)
   })
-  it('should set up a new CIRA channel', async () => {
-    const sendChannelSpy = jest.spyOn(APFProcessor, 'SendChannelOpen').mockImplementation(async () => await Promise.resolve())
+  it('should set up a new CIRA channel', () => {
+    const sendChannelSpy = jest.spyOn(APFProcessor, 'SendChannelOpen').mockImplementation(() => {})
     const socket: CIRASocket = { tag: { first: true, activetunnels: 0, boundPorts: [], host: null, nextchannelid: 4, channels: {}, nextsourceport: 0, nodeid: null } } as any
-    const channel = await ciraHandler.SetupCiraChannel(socket, 16692)
+    const channel = ciraHandler.SetupCiraChannel(socket, 16692)
     expect(sendChannelSpy).toBeCalledTimes(1)
     expect(channel.state).toEqual(1)
   })
