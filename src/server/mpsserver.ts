@@ -32,7 +32,6 @@ import { IDB } from '../interfaces/IDb'
 import { ISecretManagerService } from '../interfaces/ISecretManagerService'
 import { ConnectedDevice } from '../amt/ConnectedDevice'
 import { MqttProvider } from '../utils/MqttProvider'
-import { Semaphore } from 'await-semaphore'
 // 90 seconds max idle time, higher than the typical KEEP-ALIVE period of 60 seconds
 const MAX_IDLE = 90000
 
@@ -74,6 +73,7 @@ export class MPSServer {
 
   onAPFDisconnected = async (nodeId: string): Promise<void> => {
     try {
+      logger.silly(`onAPFDisconnected: ${nodeId}`)
       await this.handleDeviceDisconnect(nodeId)
     } catch (e) { }
     this.events.emit('disconnected', nodeId)
@@ -102,7 +102,15 @@ export class MPSServer {
       const pwd = await this.secrets.getSecretFromKey(`devices/${socket.tag.SystemId}`, 'MPS_PASSWORD')
       if (username === device?.mpsusername && password === pwd) {
         if (devices[socket.tag.SystemId]) {
-          logger.silly(`${messages.MPS_CIRA_CLOSE_OLD_CONNECTION} for ${socket.tag.SystemId} with socketid ${socket.tag.id}`)
+          const oldConnectedDevice = devices[socket.tag.SystemId]
+          if (oldConnectedDevice) {
+            logger.silly(`${messages.MPS_CIRA_CLOSE_OLD_CONNECTION} for ${socket.tag.SystemId} with socketid ${oldConnectedDevice.ciraSocket.tag.id}`)
+            try {
+              logger.silly(`replacing connected device: ${JSON.stringify(oldConnectedDevice, null, '\t')}`)
+            } catch (err) {
+              logger.error(err)
+            }
+          }
           devices[socket.tag.SystemId].ciraSocket.end() // close old connection before adding new connection
           await this.handleDeviceDisconnect(socket.tag.SystemId) // delete and disconnect
         }
@@ -132,14 +140,12 @@ export class MPSServer {
       accumulator: '',
       activetunnels: 0,
       boundPorts: [],
-      socket: socket,
+      // socket: socket,
       host: null,
       nextchannelid: 4,
       channels: {},
       nextsourceport: 0,
-      nodeid: null,
-      semaphore: new Semaphore(4),
-      claims: {}
+      nodeid: null
     }
     this.addHandlers(socket as CIRASocket)
   }
@@ -167,7 +173,7 @@ export class MPSServer {
     }
   }
 
-  onDataReceived = async (socket: CIRASocket, data: string): Promise<void> => {
+  onDataReceived = async (socket: CIRASocket, data: any): Promise<void> => {
     socket.tag.accumulator += data
 
     // Detect if this is an HTTPS request, if it is, return a simple answer and disconnect. This is useful for debugging access to the MPS port.

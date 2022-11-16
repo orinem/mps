@@ -16,6 +16,7 @@ export class CIRAChannel {
   channelid: number
   socket: CIRASocket
   state: number
+  closeSent: boolean
   sendcredits: number
   amtpendingcredits: number
   amtCiraWindow: number
@@ -36,6 +37,7 @@ export class CIRAChannel {
     this.channelid = socket.tag.nextchannelid++
     this.socket = socket
     this.state = 1
+    this.closeSent = false
     this.sendcredits = 0
     this.amtpendingcredits = 0
     this.amtCiraWindow = 0
@@ -101,7 +103,7 @@ export class CIRAChannel {
       // Compute how much data we can send
       if (wsmanRequest?.length <= this.sendcredits) {
       // Send the entire message
-        APFProcessor.SendChannelData(this.socket, this.amtchannelid, wsmanRequest)
+        APFProcessor.SendChannelData(this, wsmanRequest)
         this.sendcredits -= wsmanRequest.length
         if (messageId == null) {
           return resolve(null)
@@ -109,7 +111,7 @@ export class CIRAChannel {
       }
       // Send a part of the message
       this.sendBuffer = wsmanRequest.substring(this.sendcredits)
-      APFProcessor.SendChannelData(this.socket, this.amtchannelid, wsmanRequest.substring(0, this.sendcredits))
+      APFProcessor.SendChannelData(this, wsmanRequest.substring(0, this.sendcredits))
       this.sendcredits = 0
       if (messageId == null) {
         resolve(null)
@@ -126,7 +128,7 @@ export class CIRAChannel {
     }
     this.state = 0
     this.closing = 1
-    APFProcessor.SendChannelClose(this.socket, this.amtchannelid)
+    APFProcessor.SendChannelClose(this)
     this.resolve?.(null)
     return this.state
   }

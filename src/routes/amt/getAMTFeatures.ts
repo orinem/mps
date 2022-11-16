@@ -18,6 +18,8 @@ export async function getAMTFeatures (req: Request, res: Response): Promise<void
     const optServiceResponse = await req.deviceAction.getIpsOptInService()
     const kvmRedirectionResponse = await req.deviceAction.getKvmRedirectionSap()
 
+    // logger.silly(JSON.stringify(kvmRedirectionResponse, null, '\t'))
+
     MqttProvider.publishEvent('request', ['AMT_GetFeatures'], messages.AMT_FEATURES_GET_REQUESTED, guid)
 
     const { redir, sol, ider } = processAmtRedirectionResponse(amtRedirectionResponse.AMT_RedirectionService)
@@ -46,6 +48,7 @@ export function processAmtRedirectionResponse (amtRedirection: AMT.Models.Redire
 }
 
 export function processKvmRedirectionResponse (kvmRedirection: CIM.Models.KVMRedirectionSAP): boolean {
+  if (kvmRedirection == null) return false
   const kvm = ((kvmRedirection.EnabledState === Common.Models.CIM_KVM_REDIRECTION_SAP_ENABLED_STATE.EnabledButOffline &&
                 kvmRedirection.RequestedState === Common.Models.CIM_KVM_REDIRECTION_SAP_REQUESTED_STATE.Enabled) ||
                 kvmRedirection.EnabledState === Common.Models.CIM_KVM_REDIRECTION_SAP_ENABLED_STATE.Enabled ||

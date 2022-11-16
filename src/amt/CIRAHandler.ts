@@ -7,10 +7,13 @@ import { CIRASocket } from '../models/models'
 import APFProcessor from './APFProcessor'
 import { connectionParams, HttpHandler } from './HttpHandler'
 import httpZ, { HttpZResponseModel } from 'http-z'
-import { amtPort } from '../utils/constants'
+import { AMTPort } from '../utils/constants'
 import { Common } from '@open-amt-cloud-toolkit/wsman-messages'
 import { CIRAChannel } from './CIRAChannel'
 import { parseBody } from '../utils/parseWSManResponseBody'
+import Bottleneck from 'bottleneck'
+// import { logger } from '../logging'
+
 export interface PendingRequests {
   xml?: string
   response?: HttpZResponseModel | string
@@ -25,21 +28,21 @@ export class CIRAHandler {
   channelState: number = 0
   connectAttempts: number = 0
   socket: CIRASocket
-  constructor (httpHandler: HttpHandler, username: string, password: string) {
+  constructor (httpHandler: HttpHandler, username: string, password: string, public limiter: Bottleneck = new Bottleneck()) {
     this.username = username
     this.password = password
     this.httpHandler = httpHandler
   }
 
   // Setup CIRA Channel
-  async SetupCiraChannel (socket: CIRASocket, targetPort: number): Promise<CIRAChannel> {
+  SetupCiraChannel (socket: CIRASocket, targetPort: number): CIRAChannel {
     const sourcePort = (socket.tag.nextsourceport++ % 30000) + 1024
     const channel = new CIRAChannel(this.httpHandler, targetPort, socket)
-    await APFProcessor.SendChannelOpen(channel.socket, false, channel.channelid, channel.ciraWindow, channel.socket.tag.host, channel.targetport, '1.2.3.4', sourcePort)
+    APFProcessor.SendChannelOpen(channel.socket, false, channel.channelid, channel.ciraWindow, channel.socket.tag.host, channel.targetport, '1.2.3.4', sourcePort)
     channel.write = async (rawXML: string): Promise<any> => {
       const params: connectionParams = {
         guid: this.channel.socket.tag.nodeid,
-        port: amtPort,
+        port: AMTPort,
         digestChallenge: this.httpHandler.digestChallenge,
         username: this.username,
         password: this.password
@@ -51,8 +54,8 @@ export class CIRAHandler {
   }
 
   async Connect (): Promise<number> {
-    this.channel = await this.SetupCiraChannel(this.socket, amtPort)
     return await new Promise((resolve, reject) => {
+      this.channel = this.SetupCiraChannel(this.socket, AMTPort)
       this.channel.onStateChange.on('stateChange', (state: number) => {
         this.channelState = state
         resolve(state)
@@ -78,7 +81,7 @@ export class CIRAHandler {
 
   async Send (socket: CIRASocket, rawXml: string): Promise<any> {
     this.socket = socket
-    return await this.ExecRequest(rawXml)
+    return await this.limiter.schedule(async () => await this.ExecRequest(rawXml))
   }
 
   async ExecRequest (xml: string): Promise<any> {
@@ -106,7 +109,6 @@ export class CIRAHandler {
         }
       }
     }
-
     return null
   }
 

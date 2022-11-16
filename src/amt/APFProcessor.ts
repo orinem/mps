@@ -167,7 +167,7 @@ const APFProcessor = {
       // Compute how much data we can send
       if (cirachannel.sendBuffer.length <= cirachannel.sendcredits) {
         // Send the entire pending buffer
-        APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer)
+        APFProcessor.SendChannelData(cirachannel, cirachannel.sendBuffer)
         cirachannel.sendcredits -= cirachannel.sendBuffer.length
         delete cirachannel.sendBuffer
       } else {
@@ -177,7 +177,7 @@ const APFProcessor = {
           toSend = cirachannel.sendBuffer.length - 5
         }
         if (toSend > 0) {
-          APFProcessor.SendChannelData(cirachannel.socket, cirachannel.amtchannelid, cirachannel.sendBuffer.substring(0, toSend))
+          APFProcessor.SendChannelData(cirachannel, cirachannel.sendBuffer.substring(0, toSend))
           cirachannel.sendBuffer = cirachannel.sendBuffer.substring(toSend)
           cirachannel.sendcredits -= toSend
         }
@@ -188,27 +188,31 @@ const APFProcessor = {
   channelClose: (socket: CIRASocket, len: number, data: string): number => {
     if (len < 5) return 0
     const RecipientChannel: number = Common.ReadInt(data, 1)
-    logger.silly(`${messages.MPS_CHANNEL_CLOSE} ${RecipientChannel.toString()}`)
     const cirachannel = socket.tag.channels[RecipientChannel]
     if (cirachannel == null) {
       logger.error(`${messages.CHANNEL_CLOSE_NO_CHANNEL_ID} ${RecipientChannel}`)
       return 5
     }
-    APFProcessor.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
-    socket.tag.activetunnels--
-    if (socket.tag.claims[RecipientChannel] != null) {
-      logger.silly(`Releasing claim ${RecipientChannel.toString()}`)
-      socket.tag.claims[RecipientChannel]()
-      delete socket.tag.claims[RecipientChannel]
-    }
+    logger.silly(`${messages.MPS_CHANNEL_CLOSE} ${RecipientChannel.toString()}, ${cirachannel.amtchannelid.toString()}`)
+    APFProcessor.SendChannelClose(cirachannel)
+
+    APFProcessor.channelCleanup(cirachannel)
+
+    return 5
+  },
+
+  channelCleanup: (cirachannel: CIRAChannel): void => {
+    const tag = cirachannel.socket.tag
+    const channelid = cirachannel.channelid
+
     if (cirachannel.state > 0) {
+      tag.activetunnels--
       cirachannel.state = 0
       if (cirachannel.onStateChange) {
         cirachannel.onStateChange.emit('stateChange', cirachannel.state)
       }
-      delete socket.tag.channels[RecipientChannel]
+      delete tag.channels[channelid]
     }
-    return 5
   },
 
   channelOpenFailure: (socket: CIRASocket, length: number, data: string): number => {
@@ -216,10 +220,6 @@ const APFProcessor = {
     const recipientChannel = Common.ReadInt(data, 1)
     const reasonCode = Common.ReadInt(data, 5)
     logger.error(`${messages.MPS_CHANNEL_OPEN_FAILURE}, ${recipientChannel.toString()}, ${reasonCode.toString()}, ${socket.tag.activetunnels.toString()}`)
-    if (socket.tag.claims[recipientChannel] != null) {
-      socket.tag.claims[recipientChannel]()
-      delete socket.tag.claims[recipientChannel]
-    }
     const cirachannel = socket.tag.channels[recipientChannel]
     if (cirachannel == null) {
       logger.error(`${messages.CHANNEL_OPEN_FAILURE_NO_CHANNEL_ID} ${recipientChannel}`)
@@ -250,7 +250,7 @@ const APFProcessor = {
     logger.silly(`${messages.MPS_CHANNEL_OPEN_CONFIRMATION}, ${recipientChannel.toString()}, ${senderChannel.toString()}, ${windowSize.toString()}`)
     if (cirachannel.closing === 1) {
       // Close this channel
-      APFProcessor.SendChannelClose(cirachannel.socket, cirachannel.amtchannelid)
+      APFProcessor.SendChannelClose(cirachannel)
     } else {
       cirachannel.state = 2
       // Send any pending data
@@ -517,14 +517,13 @@ const APFProcessor = {
     )
   },
 
-  SendChannelOpen: async (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
-  ): Promise<void> => {
-    logger.silly(`${messages.MPS_SEND_CHANNEL_OPEN}, ${channelid}`)
+  SendChannelOpen: (socket: CIRASocket, direct: boolean, channelid: number, windowSize: number, target: string, targetPort: number, source: string, sourcePort: number
+  ): void => {
     const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
     // TODO: Reports of target being undefined that causes target.length to fail. This is a hack.
     if (target == null || typeof target === 'undefined') target = ''
 
-    socket.tag.claims[channelid] = await socket.tag.semaphore.acquire()
+    logger.silly(`${messages.MPS_SEND_CHANNEL_OPEN}, ${connectionType}, ${channelid}, ${windowSize}, ${target}:${targetPort}, ${source}:${sourcePort}`)
 
     APFProcessor.Write(
       socket,
@@ -543,20 +542,25 @@ const APFProcessor = {
     )
   },
 
-  SendChannelClose: (socket: CIRASocket, channelid): void => {
-    logger.silly(`${messages.MPS_SEND_CHANNEL_CLOSE}, ${channelid}`)
-    APFProcessor.Write(socket, String.fromCharCode(APFProtocol.CHANNEL_CLOSE) + Common.IntToStr(channelid))
+  SendChannelClose: (cirachannel: CIRAChannel): void => {
+    if (!cirachannel.closeSent) {
+      cirachannel.closeSent = true
+      logger.silly(`${messages.MPS_SEND_CHANNEL_CLOSE}, ${cirachannel.amtchannelid}`)
+      APFProcessor.Write(cirachannel.socket, String.fromCharCode(APFProtocol.CHANNEL_CLOSE) + Common.IntToStr(cirachannel.amtchannelid))
+    } else {
+      logger.info(`${messages.MPS_SEND_CHANNEL_CLOSE}, duplicate close for ${cirachannel.amtchannelid}`)
+    }
   },
 
-  SendChannelData: (socket: CIRASocket, channelid, data): void => {
-    logger.silly(`${messages.MPS_SEND_CHANNEL_DATA}, ${channelid}`)
-    APFProcessor.Write(
-      socket,
-      String.fromCharCode(APFProtocol.CHANNEL_DATA) +
-        Common.IntToStr(channelid) +
-        Common.IntToStr(data.length) +
-        data
-    )
+  SendChannelData: (cirachannel: CIRAChannel, data): void => {
+    logger.silly(`${messages.MPS_SEND_CHANNEL_DATA}, ${cirachannel.channelid}, ${cirachannel.amtchannelid}, ${data.length}`)
+    const buffer = Buffer.from(String.fromCharCode(APFProtocol.CHANNEL_DATA) + Common.IntToStr(cirachannel.amtchannelid) + Common.IntToStr(data.length) + data, 'binary')
+    cirachannel.socket.write(buffer, (err?: Error) => {
+      if (err) {
+        logger.error(`SendChannelData failed: ${JSON.stringify(err)}`)
+        APFProcessor.channelCleanup(cirachannel)
+      }
+    })
   },
 
   SendChannelWindowAdjust: (socket: CIRASocket, channelid, bytestoadd): void => {
@@ -596,7 +600,12 @@ const APFProcessor = {
   },
 
   Write: (socket: CIRASocket, data): void => {
-    socket.write(Buffer.from(data, 'binary'))
+    socket.write(Buffer.from(data, 'binary'), (err?: Error) => {
+      if (err) {
+        logger.error(`write failed: ${JSON.stringify(err)}`)
+        // Do something!
+      }
+    })
   },
 
   guidToStr: (g): string => {

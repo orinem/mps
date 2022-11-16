@@ -46,7 +46,7 @@ export async function setAlarmOccurrence (req: Request, res: Response): Promise<
           res.status(200).json({ status: 'SUCCESS', ReturnValue: response.Body.AddAlarm_OUTPUT.ReturnValue })
         } else {
           logger.error(`${messages.ALARM_ADD_REQUEST_FAILED} for guid : ${guid}.`)
-          logger.info(JSON.stringify(response, null, '\t'))
+          logger.info('setAlarmOccurrence failed: ' + JSON.stringify(response, null, '\t'))
           MqttProvider.publishEvent('fail', ['AMT_AddAlarm'], messages.ALARM_ADD_REQUEST_FAILED, guid)
           const subcodeValue = response.Body.Fault.Code.Subcode.Value
           if (subcodeValue.includes('QuotaLimit')) {

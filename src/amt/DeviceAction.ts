@@ -77,7 +77,7 @@ export class DeviceAction {
     return result.Envelope.Body
   }
 
-  async setRedirectionService (requestState: number): Promise<any> {
+  async setRedirectionService (requestState: AMT.Types.RedirectionService.RequestedState): Promise<any> {
     logger.silly(`setRedirectionService ${messages.REQUEST}`)
     const xmlRequestBody = this.amt.RedirectionService(AMT.Methods.REQUEST_STATE_CHANGE, requestState)
     const result = await this.ciraHandler.Send(this.ciraSocket, xmlRequestBody)
@@ -101,7 +101,7 @@ export class DeviceAction {
     return result.Envelope.Body
   }
 
-  async setKvmRedirectionSap (requestedState: number): Promise<any> {
+  async setKvmRedirectionSap (requestedState: CIM.Types.KVMRedirectionSAP.RequestedStateInputs): Promise<any> {
     logger.silly(`setKvmRedirectionSap ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.KVMRedirectionSAP(CIM.Methods.REQUEST_STATE_CHANGE, requestedState)
     const result = await this.ciraHandler.Send(this.ciraSocket, xmlRequestBody)
@@ -109,7 +109,7 @@ export class DeviceAction {
     return result.Envelope.Body
   }
 
-  async forceBootMode (bootSource: string = 'Intel(r) AMT: Boot Configuration 0', role: number = 1): Promise<number> {
+  async forceBootMode (bootSource: string = 'Intel(r) AMT: Boot Configuration 0', role: CIM.Types.BootService.Role = 1): Promise<number> {
     logger.silly(`forceBootMode ${messages.REQUEST}`)
     const xmlRequestBody = this.cim.BootService(CIM.Methods.SET_BOOT_CONFIG_ROLE, bootSource, role)
     const result = await this.ciraHandler.Send(this.ciraSocket, xmlRequestBody)
@@ -143,7 +143,7 @@ export class DeviceAction {
     return result.Envelope.Body
   }
 
-  async sendPowerAction (powerState: number): Promise<any> {
+  async sendPowerAction (powerState: CIM.Types.PowerManagementService.PowerState): Promise<any> {
     logger.silly(`sendPowerAction ${messages.REQUEST}`)
     const xmlToSend = this.cim.PowerManagementService(CIM.Methods.REQUEST_POWER_STATE_CHANGE, powerState)
     const result = await this.ciraHandler.Get<CIM.Models.PowerActionResponse>(this.ciraSocket, xmlToSend)
@@ -384,7 +384,7 @@ export class DeviceAction {
     const enumContext: string = enumResponse?.Envelope?.Body?.EnumerateResponse?.EnumerationContext
     if (enumContext == null) {
       logger.error(`getAlarmOccurrences failed. Reason: ${messages.ENUMERATION_RESPONSE_NULL}`)
-      logger.info(' enumeration result: ' + JSON.stringify(enumResponse, null, '\t'))
+      logger.silly(' enumeration result: ' + JSON.stringify(enumResponse, null, '\t'))
       return null
     }
     xmlRequestBody = this.ips.AlarmClockOccurrence(IPS.Methods.PULL, enumResponse.Envelope.Body.EnumerateResponse.EnumerationContext)
@@ -403,5 +403,13 @@ export class DeviceAction {
     }
     logger.silly(`deleteAlarmClockOccurrences ${messages.COMPLETE}`)
     return deleteResponse.Envelope
+  }
+
+  async unprovisionDevice (): Promise<Common.Models.Envelope<any>> {
+    logger.debug('Unprovisioning message to AMT')
+    const xmlRequestBody = this.amt.SetupAndConfigurationService(AMT.Methods.UNPROVISION, null, 2)
+    // will there be one?
+    const unprovisionResponse = await this.ciraHandler.Send(this.ciraSocket, xmlRequestBody)
+    return unprovisionResponse.Envelope
   }
 }

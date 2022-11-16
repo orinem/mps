@@ -9,7 +9,6 @@ import APFProcessor, { APFProtocol } from './APFProcessor'
 import { CIRASocket } from '../models/models'
 import { CIRAChannel } from './CIRAChannel'
 import { EventEmitter } from 'stream'
-import { Semaphore } from 'await-semaphore'
 
 describe('APFProcessor Tests', () => {
   afterEach(() => {
@@ -21,7 +20,7 @@ describe('APFProcessor Tests', () => {
 
   describe('processCommand', () => {
     const fakeCiraSocket: CIRASocket = {
-      tag: { claims: { } }
+      tag: {}
     } as any
 
     it('should return 0 if accumulator length is 0', async () => {
@@ -288,8 +287,8 @@ describe('APFProcessor Tests', () => {
 
     it('should return 9 if sending partial pending buffer', () => {
       const fakeCiraChannel: CIRAChannel = {
-        sendBuffer: 'my fake buffer', // 14 characters
-        sendcredits: 10, // 10 credits leaves 4 characters
+        sendBuffer: 'my fake buffer',
+        sendcredits: 10,
         socket: {
           write: jest.fn()
         },
@@ -347,8 +346,7 @@ describe('APFProcessor Tests', () => {
       const fakeCiraSocket: CIRASocket = {
         tag: {
           activetunnels: 0,
-          channels: [null, fakeCiraChannel],
-          claims: { }
+          channels: [null, fakeCiraChannel]
         }
       } as any
       const readIntSpy = jest.spyOn(Common, 'ReadInt').mockReturnValue(1)
@@ -364,8 +362,7 @@ describe('APFProcessor Tests', () => {
     const fakeCiraSocket: CIRASocket = {
       tag: {
         activetunnels: 0,
-        channels: [],
-        claims: { }
+        channels: []
       }
     } as any
 
@@ -394,8 +391,7 @@ describe('APFProcessor Tests', () => {
       const fakeCiraSocket: CIRASocket = {
         tag: {
           activetunnels: 0,
-          channels: [null, fakeCiraChannel],
-          claims: { }
+          channels: [null, fakeCiraChannel]
         }
       } as any
       const length = 17
@@ -1001,7 +997,7 @@ describe('APFProcessor Tests', () => {
 
     it('should return 5 on happy path', () => {
       const fakeCiraSocket: CIRASocket = {
-        tag: { claims: { } },
+        tag: {},
         write: jest.fn()
       } as any
       const length = 5
@@ -1019,7 +1015,7 @@ describe('APFProcessor Tests', () => {
     beforeEach(() => {
       writeSpy = jest.spyOn(APFProcessor, 'Write')
       fakeCiraSocket = {
-        tag: { semaphore: new Semaphore(4), claims: { } },
+        tag: {},
         write: jest.fn()
       } as any
     })
@@ -1100,9 +1096,9 @@ describe('APFProcessor Tests', () => {
       expect(writeSpy).toHaveBeenCalledWith(fakeCiraSocket, dataExpected)
     })
 
-    it('should SendChannelOpen with direct-tcpip', async () => {
+    it('should SendChannelOpen with direct-tcpip', () => {
       const direct = true
-      await APFProcessor.SendChannelOpen(fakeCiraSocket, direct, channelid, windowSize, target, targetPort, source, sourcePort)
+      APFProcessor.SendChannelOpen(fakeCiraSocket, direct, channelid, windowSize, target, targetPort, source, sourcePort)
       const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
       const dataExpected =
         String.fromCharCode(APFProtocol.CHANNEL_OPEN) +
@@ -1120,9 +1116,9 @@ describe('APFProcessor Tests', () => {
       expect(writeSpy).toHaveBeenCalledWith(fakeCiraSocket, dataExpected)
     })
 
-    it('should SendChannelOpen with forwarded-tcpip', async () => {
+    it('should SendChannelOpen with forwarded-tcpip', () => {
       const direct = false
-      await APFProcessor.SendChannelOpen(fakeCiraSocket, direct, channelid, windowSize, target, targetPort, source, sourcePort)
+      APFProcessor.SendChannelOpen(fakeCiraSocket, direct, channelid, windowSize, target, targetPort, source, sourcePort)
       const connectionType = direct ? 'direct-tcpip' : 'forwarded-tcpip'
       const dataExpected =
         String.fromCharCode(APFProtocol.CHANNEL_OPEN) +
@@ -1141,13 +1137,21 @@ describe('APFProcessor Tests', () => {
     })
 
     it('should SendChannelClose', () => {
-      APFProcessor.SendChannelClose(fakeCiraSocket, channelid)
+      const fakeCiraChannel: CIRAChannel = {
+        socket: fakeCiraSocket,
+        amtchannelid: channelid
+      } as any
+      APFProcessor.SendChannelClose(fakeCiraChannel)
       const dataExpected = String.fromCharCode(APFProtocol.CHANNEL_CLOSE) + Common.IntToStr(channelid)
       expect(writeSpy).toHaveBeenCalledWith(fakeCiraSocket, dataExpected)
     })
 
     it('should SendChannelData', () => {
-      APFProcessor.SendChannelData(fakeCiraSocket, channelid, data)
+      const fakeCiraChannel: CIRAChannel = {
+        socket: fakeCiraSocket,
+        amtchannelid: channelid
+      } as any
+      APFProcessor.SendChannelData(fakeCiraChannel, data)
       const dataExpected =
         String.fromCharCode(APFProtocol.CHANNEL_DATA) +
         Common.IntToStr(channelid) +
