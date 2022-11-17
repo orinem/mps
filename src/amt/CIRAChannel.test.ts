@@ -85,7 +85,10 @@ describe('CIRA Channel', () => {
   })
   it('should resolve if data does not contain messageId', async () => {
     ciraChannel.state = 2
-    ciraChannel.sendcredits = 116
+    // use sendCredits = 116 if using chunked encoding;
+    // extra characters are: "ingChunked\r\n\r\n0\r\n\r\n"
+    ciraChannel.sendcredits = 97
+
     const data = 'KVMR'
     const params: connectionParams = {
       guid: '4c4c4544-004b-4210-8033-b6c04f504633',
