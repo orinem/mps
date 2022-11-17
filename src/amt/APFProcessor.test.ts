@@ -324,6 +324,7 @@ describe('APFProcessor Tests', () => {
     it('should return 5 if cirachannel is null', () => {
       const fakeCiraSocket: CIRASocket = {
         tag: {
+          activetunnels: 1,
           channels: [null, null]
         }
       } as any
@@ -337,18 +338,18 @@ describe('APFProcessor Tests', () => {
 
     it('should return 5 on happy path', () => {
       const fakeCiraChannel: CIRAChannel = {
-        socket: {
-          write: jest.fn()
-        },
         state: 1,
+        amtchannelid: 42,
         onStateChange: new EventEmitter()
       } as any
       const fakeCiraSocket: CIRASocket = {
         tag: {
           activetunnels: 0,
           channels: [null, fakeCiraChannel]
-        }
+        },
+        write: jest.fn()
       } as any
+      fakeCiraChannel.socket = fakeCiraSocket;
       const readIntSpy = jest.spyOn(Common, 'ReadInt').mockReturnValue(1)
       const sendChannelCloseSpy = jest.spyOn(APFProcessor, 'SendChannelClose')
       const result = APFProcessor.channelClose(fakeCiraSocket, 5, '')
@@ -1151,13 +1152,15 @@ describe('APFProcessor Tests', () => {
         socket: fakeCiraSocket,
         amtchannelid: channelid
       } as any
-      APFProcessor.SendChannelData(fakeCiraChannel, data)
-      const dataExpected =
-        String.fromCharCode(APFProtocol.CHANNEL_DATA) +
-        Common.IntToStr(channelid) +
-        Common.IntToStr(data.length) +
-        data
-      expect(writeSpy).toHaveBeenCalledWith(fakeCiraSocket, dataExpected)
+      fakeCiraSocket.write = jest.fn()
+      const dataExpected = Buffer.from(
+          String.fromCharCode(APFProtocol.CHANNEL_DATA) +
+            Common.IntToStr(channelid) +
+            Common.IntToStr(data.length) +
+            data, 
+          'binary')
+        APFProcessor.SendChannelData(fakeCiraChannel, data)
+        expect(fakeCiraSocket.write).toHaveBeenCalledWith(dataExpected, expect.any(Function))
     })
 
     it('should SendChannelWindowAdjust', () => {
@@ -1203,7 +1206,7 @@ describe('APFProcessor Tests', () => {
       const data = ''
       const dataExpected = Buffer.from(data, 'binary')
       APFProcessor.Write(fakeCiraSocket, data)
-      expect(fakeCiraSocket.write).toHaveBeenCalledWith(dataExpected)
+      expect(fakeCiraSocket.write).toHaveBeenCalledWith(dataExpected, expect.any(Function))
     })
   })
 

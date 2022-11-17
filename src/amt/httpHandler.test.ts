@@ -120,4 +120,3 @@ it('should throw and expection and return a null when connection params are not 
   const result = httpHandler.wrapIt(null, xmlRequestBody)
   expect(result).toBe(null)
 })
-
