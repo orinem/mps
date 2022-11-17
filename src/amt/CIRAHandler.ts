@@ -12,7 +12,6 @@ import { Common } from '@open-amt-cloud-toolkit/wsman-messages'
 import { CIRAChannel } from './CIRAChannel'
 import { parseBody } from '../utils/parseWSManResponseBody'
 import Bottleneck from 'bottleneck'
-// import { logger } from '../logging'
 
 export interface PendingRequests {
   xml?: string
