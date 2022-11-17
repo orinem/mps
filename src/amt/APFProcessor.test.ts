@@ -349,7 +349,7 @@ describe('APFProcessor Tests', () => {
         },
         write: jest.fn()
       } as any
-      fakeCiraChannel.socket = fakeCiraSocket;
+      fakeCiraChannel.socket = fakeCiraSocket
       const readIntSpy = jest.spyOn(Common, 'ReadInt').mockReturnValue(1)
       const sendChannelCloseSpy = jest.spyOn(APFProcessor, 'SendChannelClose')
       const result = APFProcessor.channelClose(fakeCiraSocket, 5, '')
@@ -1154,13 +1154,13 @@ describe('APFProcessor Tests', () => {
       } as any
       fakeCiraSocket.write = jest.fn()
       const dataExpected = Buffer.from(
-          String.fromCharCode(APFProtocol.CHANNEL_DATA) +
-            Common.IntToStr(channelid) +
-            Common.IntToStr(data.length) +
-            data, 
-          'binary')
-        APFProcessor.SendChannelData(fakeCiraChannel, data)
-        expect(fakeCiraSocket.write).toHaveBeenCalledWith(dataExpected, expect.any(Function))
+        String.fromCharCode(APFProtocol.CHANNEL_DATA) +
+          Common.IntToStr(channelid) +
+          Common.IntToStr(data.length) +
+          data,
+        'binary')
+      APFProcessor.SendChannelData(fakeCiraChannel, data)
+      expect(fakeCiraSocket.write).toHaveBeenCalledWith(dataExpected, expect.any(Function))
     })
 
     it('should SendChannelWindowAdjust', () => {
