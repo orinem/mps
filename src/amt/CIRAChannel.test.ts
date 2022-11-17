@@ -85,7 +85,7 @@ describe('CIRA Channel', () => {
   })
   it('should resolve if data does not contain messageId', async () => {
     ciraChannel.state = 2
-    ciraChannel.sendcredits = 116
+    ciraChannel.sendcredits = 97
     const data = 'KVMR'
     const params: connectionParams = {
       guid: '4c4c4544-004b-4210-8033-b6c04f504633',
