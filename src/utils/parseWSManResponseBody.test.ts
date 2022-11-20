@@ -100,8 +100,10 @@ describe('Check parseWSManResponseBody', () => {
           name: 'Content-Length',
           value: '0'
         }
-      ]
+      ],
+      body: null
     }
+    delete xmlResponse.body // Yes, really!  It's not there in this case.
     const response = parseBody(xmlResponse)
     expect(response).toBe('')
   })
